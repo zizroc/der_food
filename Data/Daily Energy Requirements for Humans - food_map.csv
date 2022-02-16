@@ -1,0 +1,97 @@
+item_code,item,model_group1,model_group
+2659,"Alcohol, Non-Food",alcohol_nonfood,
+2617,Apples and products,fruits,fruits
+2769,"Aquatic Animals, Others",fish_seafood,fish_seafood
+2775,Aquatic Plants,miscallaneous,
+2615,Bananas,fruits,fruits
+2513,Barley and products,cereals,cereals
+2546,Beans,legumes,legumes
+2657,"Beverages, Fermented",alcohol,
+2731,Bovine Meat,bovine_meat,beef_lamb_pork
+2740,"Butter, Ghee",dairy,dairy
+2532,Cassava and products,roots_tubers,
+2766,Cephalopods,fish_seafood,fish_seafood
+2520,"Cereals, Other",cereals,cereals
+2614,"Citrus, Other",citrus,fruits
+2642,Cloves,miscellaneous,
+2633,Cocoa Beans and products,stumulants,
+2578,Coconut Oil,oils,oils
+2560,Coconuts - Incl Copra,oilcrops,oils
+2630,Coffee and products,stumulants,
+2559,Cottonseed,oilcrops,oils
+2575,Cottonseed Oil,oils,oils
+2743,Cream,dairy,dairy
+2765,Crustaceans,fish_seafood,fish_seafood
+2619,Dates,fruits,fruits
+2762,Demersal Fish,fish_seafood,fish_seafood
+2744,Eggs,eggs,eggs
+2737,"Fats, Animals, Raw",misc_animal_products,
+2781,"Fish, Body Oil",fish_seafood,fish_seafood
+2782,"Fish, Liver Oil",fish_seafood,fish_seafood
+2761,Freshwater Fish,fish_seafood,fish_seafood
+2625,"Fruits, Other",fruits,fruits
+2613,Grapefruit and products,citrus,fruits
+2620,Grapes and products (excl wine),fruits,fruits
+2552,Groundnuts,legumes,legumes
+2745,Honey,miscellaneous,
+2612,"Lemons, Limes and products",citrus,fruits
+2514,Maize and products,cereals,cereals
+2582,Maize Germ Oil,oils,oils
+2764,"Marine Fish, Other",fish_seafood,fish_seafood
+2768,"Meat, Aquatic Mammals",fish_seafood,fish_seafood
+2735,"Meat, Other",beef_lamb_pork,beef_lamb_pork
+2848,Milk - Excluding Butter,dairy,dairy
+2517,Millet and products,cereals,cereals
+2899,Miscellaneous,miscellaneous,
+2767,"Molluscs, Other",fish_seafood,fish_seafood
+2732,Mutton & Goat Meat,caprine_meat,beef_lamb_pork
+2551,Nuts and products,treenuts,treenuts
+2516,Oats,cereals,cereals
+2736,"Offals, Edible",misc_animal_products,beef_lamb_pork
+2580,Olive Oil,oils,oils
+2563,Olives (including preserved),oilcrops,oils
+2602,Onions,vegetables,vegetables
+2611,"Oranges, Mandarines",citrus,fruits
+2562,Palm kernels,oilcrops,oils
+2577,Palm Oil,oils,oils
+2576,Palmkernel Oil,oils,oils
+2547,Peas,legumes,legumes
+2763,Pelagic Fish,fish_seafood,fish_seafood
+2640,Pepper,vegetables,vegetables
+2733,Pigmeat,sus_meat,beef_lamb_pork
+2641,Pimento,vegetables,vegetables
+2618,Pineapples and products,fruits,fruits
+2616,Plantains,fruits,fruits
+2531,Potatoes and products,roots_tubers,roots_tubers
+2734,Poultry Meat,chicken_poultry,chicken_poultry
+2549,"Pulses, Other and products",legumes,legumes
+2574,Rape and Mustard Oil,oils,oils
+2558,Rape and Mustardseed,oilcrops,oils
+2807,Rice and products,cereals,cereals
+2581,Ricebran Oil,oils,oils
+2534,"Roots, Other",roots_tubers,roots_tubers
+2515,Rye and products,cereals,cereals
+2561,Sesame seed,oilcrops,oils
+2579,Sesameseed Oil,oilcrops,oils
+2518,Sorghum and products,cereals,cereals
+2571,Soyabean Oil,oils,oils
+2555,Soyabeans,oilcrops,oils
+2645,"Spices, Other",miscellaneous,
+2542,Sugar (Raw Equivalent),sugarcrops,sugarcrops
+2537,Sugar beet,sugarcrops,sugarcrops
+2536,Sugar cane,sugarcrops,sugarcrops
+2541,Sugar non-centrifugal,sugarcrops,sugarcrops
+2557,Sunflower seed,oilcrops,oils
+2573,Sunflowerseed Oil,oils,oils
+2533,Sweet potatoes,roots_tubers,roots_tubers
+2543,"Sweeteners, Other",sugarcrops,sugarcrops
+2635,Tea (including mate),stumulants,
+2601,Tomatoes and products,vegetables,vegetables
+2605,"Vegetables, Other",vegetables,vegetables
+2511,Wheat and products,cereals,cereals
+2535,Yams,roots_tubers,roots_tubers
+2572,Groundnut Oil,oils,oils
+2586,"Oilcrops Oil, Other",oils,oils
+2656,Beer,alcohol,
+2658,"Beverages, Alcoholic",alcohol,
+2570,"Oilcrops, Other",oilcrops,oils
