@@ -1641,11 +1641,11 @@ feed_2014_2022_est <- feed_2014_2018_data %>%
 
 Use crop weight of food and crop ingredient weight of feed from earlier. We will only use the data for years 2023 and after.
 ```{r}
-# save(food_weight, file = paste0(data_path, "food_weight.R"))
-load(file = paste0(data_path, "food_weight.R")) #food_weight
-
-# save(feed_ingredient_demand_summary, file = paste0(data_path, "feed_ingredient_demand_summary.R"))
-load(file = paste0(data_path, "feed_ingredient_demand_summary.R")) #feed_ingredient_demand_summary
+# # save(food_weight, file = paste0(data_path, "food_weight.Rdata"))
+# load(file = paste0(data_path, "food_weight.Rdata")) #food_weight
+# 
+# # save(feed_ingredient_demand_summary, file = paste0(data_path, "feed_ingredient_demand_summary.Rdata"))
+# load(file = paste0(data_path, "feed_ingredient_demand_summary.Rdata")) #feed_ingredient_demand_summary
 
 ```
 
