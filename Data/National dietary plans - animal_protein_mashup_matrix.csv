@@ -1,0 +1,7 @@
+model_group,subregion,bovine_meat,bovine_dairy,poultry_meat,poultry_eggs,sus_meat,caprine_meat,caprine_dairy,fish,other_seafood,freshwater_fish,source
+eggs,world,0,0,0,1,0,0,0,0,0,0,
+chicken_poultry,world,0,0,1,0,0,0,0,0,0,0,
+dairy,world,0,0.96,0,0,0,0,0.04,0,0,0,OECD-FAO Agricultural Outlook 2020-2029 report
+beef_lamb_pork,world,0.37,0,0,0,0.58,0.005,0,0,0,0,https://www.statista.com/statistics/1025784/human-consumption-of-protein-by-type-worldwide/ with sheep/goats assumed to be 10e7 Mt
+meat_poultry,world,0.22,0,0.4,0,0.34,0.03,0,0,0,0,https://www.statista.com/statistics/1025784/human-consumption-of-protein-by-type-worldwide/ with sheep/goats assumed to be 10e7 Mt
+fish_seafood,world,0,0,0,0,0,0,0,0.44,0.22,0.34,"Global seafood production for 2020, OWID. https://ourworldindata.org/seafood-production"

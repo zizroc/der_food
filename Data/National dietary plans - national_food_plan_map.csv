@@ -1,0 +1,58 @@
+national_food_plan,national_food_plan_group,model_group,g_kcal,source
+FDA_SDP,dark-green-veg,vegetables,3.85,https://www.dietaryguidelines.gov/sites/default/files/2021-03/Dietary_Guidelines_for_Americans-2020-2025.pdf
+FDA_SDP,red-and-orange-veg,vegetables,3.85,https://www.dietaryguidelines.gov/sites/default/files/2021-03/Dietary_Guidelines_for_Americans-2020-2025.pdf
+FDA_SDP,beans-peas-lentils,vegetables,3.85,https://www.dietaryguidelines.gov/sites/default/files/2021-03/Dietary_Guidelines_for_Americans-2020-2025.pdf
+FDA_SDP,starchy-veg,roots_tubers,1.28,https://www.dietaryguidelines.gov/sites/default/files/2021-03/Dietary_Guidelines_for_Americans-2020-2025.pdf
+FDA_SDP,other-veg,vegetables,3.85,https://www.dietaryguidelines.gov/sites/default/files/2021-03/Dietary_Guidelines_for_Americans-2020-2025.pdf
+FDA_SDP,fruits,fruits,1.59,https://www.dietaryguidelines.gov/sites/default/files/2021-03/Dietary_Guidelines_for_Americans-2020-2025.pdf
+FDA_SDP,dairy,dairy,1.63,https://www.dietaryguidelines.gov/sites/default/files/2021-03/Dietary_Guidelines_for_Americans-2020-2025.pdf
+FDA_SDP,whole-grains,cereals,0.286,https://www.dietaryguidelines.gov/sites/default/files/2021-03/Dietary_Guidelines_for_Americans-2020-2025.pdf
+FDA_SDP,refined-grains,cereals,0.286,https://www.dietaryguidelines.gov/sites/default/files/2021-03/Dietary_Guidelines_for_Americans-2020-2025.pdf
+FDA_SDP,meats-poultry-eggs,meat_poultry,0.468,https://www.dietaryguidelines.gov/sites/default/files/2021-03/Dietary_Guidelines_for_Americans-2020-2025.pdf
+FDA_SDP,seafood,fish_seafood,0.7,https://www.dietaryguidelines.gov/sites/default/files/2021-03/Dietary_Guidelines_for_Americans-2020-2025.pdf
+FDA_SDP,nuts-seeds-soy-products,treenuts,0.172,https://www.dietaryguidelines.gov/sites/default/files/2021-03/Dietary_Guidelines_for_Americans-2020-2025.pdf
+FDA_SDP,oils,oils,0.116,https://www.dietaryguidelines.gov/sites/default/files/2021-03/Dietary_Guidelines_for_Americans-2020-2025.pdf
+FDA_SDP,other,sugarcrops,0.265,https://www.dietaryguidelines.gov/sites/default/files/2021-03/Dietary_Guidelines_for_Americans-2020-2025.pdf
+CNS_CFP,oil,oils,0.116,http://dg.cnsoc.org/upload/images/source/20160519163856103.jpg
+CNS_CFP,milk_milk_products,dairy,1.63,http://dg.cnsoc.org/upload/images/source/20160519163856103.jpg
+CNS_CFP,soybean_and_nuts,legumes,0.264,http://dg.cnsoc.org/upload/images/source/20160519163856103.jpg
+CNS_CFP,meat_poultry,meat_poultry,0.468,http://dg.cnsoc.org/upload/images/source/20160519163856103.jpg
+CNS_CFP,aquatic_products,fish_seafood,0.7,http://dg.cnsoc.org/upload/images/source/20160519163856103.jpg
+CNS_CFP,eggs,eggs,0.684,http://dg.cnsoc.org/upload/images/source/20160519163856103.jpg
+CNS_CFP,vegetables,vegetables,3.85,http://dg.cnsoc.org/upload/images/source/20160519163856103.jpg
+CNS_CFP,fruits,fruits,1.59,http://dg.cnsoc.org/upload/images/source/20160519163856103.jpg
+CNS_CFP,cereals_potatos,roots_tubers,1.28,http://dg.cnsoc.org/upload/images/source/20160519163856103.jpg
+CNS_CFP,whole_grains_mixed_beans,cereals,0.286,http://dg.cnsoc.org/upload/images/source/20160519163856103.jpg
+ELA_PHD,eggs,eggs,0.684,https://eatforum.org/eat-lancet-commission/the-planetary-health-diet-and-you/
+ELA_PHD,chicken_poultry,chicken_poultry,0.468,https://eatforum.org/eat-lancet-commission/the-planetary-health-diet-and-you/
+ELA_PHD,dairy,dairy,1.63,https://eatforum.org/eat-lancet-commission/the-planetary-health-diet-and-you/
+ELA_PHD,beef_lamb_pork,beef_lamb_pork,0.467,https://eatforum.org/eat-lancet-commission/the-planetary-health-diet-and-you/
+ELA_PHD,whole_grains,cereals,0.286,https://eatforum.org/eat-lancet-commission/the-planetary-health-diet-and-you/
+ELA_PHD,fruits,fruits,1.59,https://eatforum.org/eat-lancet-commission/the-planetary-health-diet-and-you/
+ELA_PHD,fish,fish_seafood,0.7,https://eatforum.org/eat-lancet-commission/the-planetary-health-diet-and-you/
+ELA_PHD,all_oils,oils,0.116,https://eatforum.org/eat-lancet-commission/the-planetary-health-diet-and-you/
+ELA_PHD,legumes,legumes,0.264,https://eatforum.org/eat-lancet-commission/the-planetary-health-diet-and-you/
+ELA_PHD,tubers_starchy_vegetables,roots_tubers,1.28,https://eatforum.org/eat-lancet-commission/the-planetary-health-diet-and-you/
+ELA_PHD,all_sugars,sugarcrops,0.265,https://eatforum.org/eat-lancet-commission/the-planetary-health-diet-and-you/
+ELA_PHD,nuts,treenuts,0.172,https://eatforum.org/eat-lancet-commission/the-planetary-health-diet-and-you/
+ELA_PHD,vegetables,vegetables,3.85,https://eatforum.org/eat-lancet-commission/the-planetary-health-diet-and-you/
+CDC_USD,added_sugar,sugarcrops,0.265,"Shan Z, Rehm CD, Rogers G, et al. Trends in Dietary Carbohydrate, Protein, and Fat Intake and Diet Quality Among US Adults, 1999-2016. JAMA. 2019;322(12):1178–1187. doi:10.1001/jama.2019.13771"
+CDC_USD,dairy,dairy,1.63,"Shan Z, Rehm CD, Rogers G, et al. Trends in Dietary Carbohydrate, Protein, and Fat Intake and Diet Quality Among US Adults, 1999-2016. JAMA. 2019;322(12):1178–1187. doi:10.1001/jama.2019.13771"
+CDC_USD,eggs,eggs,0.684,"Shan Z, Rehm CD, Rogers G, et al. Trends in Dietary Carbohydrate, Protein, and Fat Intake and Diet Quality Among US Adults, 1999-2016. JAMA. 2019;322(12):1178–1187. doi:10.1001/jama.2019.13772"
+CDC_USD,fruit_juice,fruits,1.59,"Shan Z, Rehm CD, Rogers G, et al. Trends in Dietary Carbohydrate, Protein, and Fat Intake and Diet Quality Among US Adults, 1999-2016. JAMA. 2019;322(12):1178–1187. doi:10.1001/jama.2019.13773"
+CDC_USD,legumes,legumes,0.264,"Shan Z, Rehm CD, Rogers G, et al. Trends in Dietary Carbohydrate, Protein, and Fat Intake and Diet Quality Among US Adults, 1999-2016. JAMA. 2019;322(12):1178–1187. doi:10.1001/jama.2019.13774"
+CDC_USD,non_starchy_vegetable,vegetables,3.85,"Shan Z, Rehm CD, Rogers G, et al. Trends in Dietary Carbohydrate, Protein, and Fat Intake and Diet Quality Among US Adults, 1999-2016. JAMA. 2019;322(12):1178–1187. doi:10.1001/jama.2019.13775"
+CDC_USD,nuts,treenuts,0.172,"Shan Z, Rehm CD, Rogers G, et al. Trends in Dietary Carbohydrate, Protein, and Fat Intake and Diet Quality Among US Adults, 1999-2016. JAMA. 2019;322(12):1178–1187. doi:10.1001/jama.2019.13776"
+CDC_USD,other_animal_sources,beef_lamb_pork,0.467,"Shan Z, Rehm CD, Rogers G, et al. Trends in Dietary Carbohydrate, Protein, and Fat Intake and Diet Quality Among US Adults, 1999-2016. JAMA. 2019;322(12):1178–1187. doi:10.1001/jama.2019.13777"
+CDC_USD,other_plant_sources,vegetables,3.85,"Shan Z, Rehm CD, Rogers G, et al. Trends in Dietary Carbohydrate, Protein, and Fat Intake and Diet Quality Among US Adults, 1999-2016. JAMA. 2019;322(12):1178–1187. doi:10.1001/jama.2019.13778"
+CDC_USD,other_sources,cereals,0.286,"Shan Z, Rehm CD, Rogers G, et al. Trends in Dietary Carbohydrate, Protein, and Fat Intake and Diet Quality Among US Adults, 1999-2016. JAMA. 2019;322(12):1178–1187. doi:10.1001/jama.2019.13779"
+CDC_USD,other_starchy_vegetable,vegetables,3.85,"Shan Z, Rehm CD, Rogers G, et al. Trends in Dietary Carbohydrate, Protein, and Fat Intake and Diet Quality Among US Adults, 1999-2016. JAMA. 2019;322(12):1178–1187. doi:10.1001/jama.2019.13780"
+CDC_USD,potato,roots_tubers,1.28,"Shan Z, Rehm CD, Rogers G, et al. Trends in Dietary Carbohydrate, Protein, and Fat Intake and Diet Quality Among US Adults, 1999-2016. JAMA. 2019;322(12):1178–1187. doi:10.1001/jama.2019.13781"
+CDC_USD,poultry,chicken_poultry,0.468,"Shan Z, Rehm CD, Rogers G, et al. Trends in Dietary Carbohydrate, Protein, and Fat Intake and Diet Quality Among US Adults, 1999-2016. JAMA. 2019;322(12):1178–1187. doi:10.1001/jama.2019.13782"
+CDC_USD,processed_meat,beef_lamb_pork,0.467,"Shan Z, Rehm CD, Rogers G, et al. Trends in Dietary Carbohydrate, Protein, and Fat Intake and Diet Quality Among US Adults, 1999-2016. JAMA. 2019;322(12):1178–1187. doi:10.1001/jama.2019.13783"
+CDC_USD,refined_grains,cereals,0.286,"Shan Z, Rehm CD, Rogers G, et al. Trends in Dietary Carbohydrate, Protein, and Fat Intake and Diet Quality Among US Adults, 1999-2016. JAMA. 2019;322(12):1178–1187. doi:10.1001/jama.2019.13784"
+CDC_USD,seafood,fish_seafood,0.7,"Shan Z, Rehm CD, Rogers G, et al. Trends in Dietary Carbohydrate, Protein, and Fat Intake and Diet Quality Among US Adults, 1999-2016. JAMA. 2019;322(12):1178–1187. doi:10.1001/jama.2019.13785"
+CDC_USD,soy,legumes,0.264,"Shan Z, Rehm CD, Rogers G, et al. Trends in Dietary Carbohydrate, Protein, and Fat Intake and Diet Quality Among US Adults, 1999-2016. JAMA. 2019;322(12):1178–1187. doi:10.1001/jama.2019.13786"
+CDC_USD,unprocessed_red_meat,beef_lamb_pork,0.467,"Shan Z, Rehm CD, Rogers G, et al. Trends in Dietary Carbohydrate, Protein, and Fat Intake and Diet Quality Among US Adults, 1999-2016. JAMA. 2019;322(12):1178–1187. doi:10.1001/jama.2019.13787"
+CDC_USD,whole_fruit,fruits,1.59,"Shan Z, Rehm CD, Rogers G, et al. Trends in Dietary Carbohydrate, Protein, and Fat Intake and Diet Quality Among US Adults, 1999-2016. JAMA. 2019;322(12):1178–1187. doi:10.1001/jama.2019.13788"
+CDC_USD,whole_grains,cereals,0.286,"Shan Z, Rehm CD, Rogers G, et al. Trends in Dietary Carbohydrate, Protein, and Fat Intake and Diet Quality Among US Adults, 1999-2016. JAMA. 2019;322(12):1178–1187. doi:10.1001/jama.2019.13789"

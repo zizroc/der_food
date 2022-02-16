@@ -1,0 +1,222 @@
+iso_alpha3,countryname,fao_countrycode,un_countrycode,subregioncode,subregionname,region
+BDI,Burundi,29,108,910,Eastern Africa,Africa
+COM,Comoros,45,174,910,Eastern Africa,Africa
+DJI,Djibouti,72,262,910,Eastern Africa,Africa
+ERI,Eritrea,178,232,910,Eastern Africa,Africa
+ETH,Ethiopia,238,231,910,Eastern Africa,Africa
+KEN,Kenya,114,404,910,Eastern Africa,Africa
+MDG,Madagascar,129,450,910,Eastern Africa,Africa
+MWI,Malawi,130,454,910,Eastern Africa,Africa
+MUS,Mauritius,137,480,910,Eastern Africa,Africa
+MYT,Mayotte,270,175,910,Eastern Africa,Africa
+MOZ,Mozambique,144,508,910,Eastern Africa,Africa
+RWA,Rwanda,184,646,910,Eastern Africa,Africa
+SYC,Seychelles,196,690,910,Eastern Africa,Africa
+SOM,Somalia,201,706,910,Eastern Africa,Africa
+SSD,South Sudan,277,728,910,Eastern Africa,Africa
+UGA,Uganda,226,800,910,Eastern Africa,Africa
+TZA,United Republic of Tanzania,215,834,910,Eastern Africa,Africa
+ZMB,Zambia,251,894,910,Eastern Africa,Africa
+ZWE,Zimbabwe,181,716,910,Eastern Africa,Africa
+AGO,Angola,7,24,911,Middle Africa,Africa
+CMR,Cameroon,32,120,911,Middle Africa,Africa
+CAF,Central African Republic,37,140,911,Middle Africa,Africa
+TCD,Chad,39,148,911,Middle Africa,Africa
+COG,Congo,46,178,911,Middle Africa,Africa
+COD,Democratic Republic of the Congo,250,180,911,Middle Africa,Africa
+GNQ,Equatorial Guinea,61,226,911,Middle Africa,Africa
+GAB,Gabon,74,266,911,Middle Africa,Africa
+STP,Sao Tome and Principe,193,678,911,Middle Africa,Africa
+BWA,Botswana,20,72,913,Southern Africa,Africa
+SWZ,Eswatini,209,748,913,Southern Africa,Africa
+LSO,Lesotho,122,426,913,Southern Africa,Africa
+NAM,Namibia,147,516,913,Southern Africa,Africa
+ZAF,South Africa,202,710,913,Southern Africa,Africa
+BEN,Benin,53,204,914,Western Africa,Africa
+BFA,Burkina Faso,233,854,914,Western Africa,Africa
+CPV,Cabo Verde,35,132,914,Western Africa,Africa
+GMB,Gambia,75,270,914,Western Africa,Africa
+GHA,Ghana,81,288,914,Western Africa,Africa
+GIN,Guinea,90,324,914,Western Africa,Africa
+GNB,Guinea-Bissau,175,624,914,Western Africa,Africa
+LBR,Liberia,123,430,914,Western Africa,Africa
+MLI,Mali,133,466,914,Western Africa,Africa
+MRT,Mauritania,136,478,914,Western Africa,Africa
+NER,Niger,158,562,914,Western Africa,Africa
+NGA,Nigeria,159,566,914,Western Africa,Africa
+SEN,Senegal,195,686,914,Western Africa,Africa
+SLE,Sierra Leone,197,694,914,Western Africa,Africa
+TGO,Togo,217,768,914,Western Africa,Africa
+DZA,Algeria,4,12,912,Northern Africa,Africa
+EGY,Egypt,59,818,912,Northern Africa,Africa
+LBY,Libya,124,434,912,Northern Africa,Africa
+MAR,Morocco,143,504,912,Northern Africa,Africa
+SDN,Sudan,276,729,912,Northern Africa,Africa
+TUN,Tunisia,222,788,912,Northern Africa,Africa
+ESH,Western Sahara,205,732,912,Northern Africa,Africa
+ARM,Armenia,1,51,922,Western Asia,Central Asia and Russia
+AZE,Azerbaijan,52,31,922,Western Asia,Central Asia and Russia
+BHR,Bahrain,13,48,922,Western Asia,MENA
+CYP,Cyprus,50,196,922,Western Asia,Europe
+GEO,Georgia,73,268,922,Western Asia,Central Asia and Russia
+IRQ,Iraq,103,368,922,Western Asia,MENA
+ISR,Israel,105,376,922,Western Asia,MENA
+JOR,Jordan,112,400,922,Western Asia,MENA
+KWT,Kuwait,118,414,922,Western Asia,MENA
+LBN,Lebanon,121,422,922,Western Asia,MENA
+OMN,Oman,221,512,922,Western Asia,MENA
+QAT,Qatar,179,634,922,Western Asia,MENA
+SAU,Saudi Arabia,194,682,922,Western Asia,MENA
+SYR,Syrian Arab Republic,212,760,922,Western Asia,MENA
+TUR,Turkey,223,792,922,Western Asia,MENA
+ARE,United Arab Emirates,225,784,922,Western Asia,MENA
+YEM,Yemen,249,887,922,Western Asia,MENA
+KAZ,Kazakhstan,108,398,5500,Central Asia,Central Asia and Russia
+KGZ,Kyrgyzstan,113,417,5500,Central Asia,Central Asia and Russia
+TJK,Tajikistan,208,762,5500,Central Asia,Central Asia and Russia
+TKM,Turkmenistan,213,795,5500,Central Asia,Central Asia and Russia
+UZB,Uzbekistan,235,860,5500,Central Asia,Central Asia and Russia
+AFG,Afghanistan,2,4,5501,Southern Asia,Central Asia and Russia
+BGD,Bangladesh,16,50,5501,Southern Asia,South Asia
+BTN,Bhutan,18,64,5501,Southern Asia,South Asia
+IND,India,100,356,5501,Southern Asia,South Asia
+IRN,Iran (Islamic Republic of),102,364,5501,Southern Asia,Central Asia and Russia
+MDV,Maldives,132,462,5501,Southern Asia,South Asia
+NPL,Nepal,149,524,5501,Southern Asia,South Asia
+PAK,Pakistan,165,586,5501,Southern Asia,South Asia
+LKA,Sri Lanka,38,144,5501,Southern Asia,South Asia
+CHN,China,351,156,906,Eastern Asia,East Asia
+HKG,"China, Hong Kong SAR",96,344,906,Eastern Asia,East Asia
+MAC,"China, Macao SAR",128,446,906,Eastern Asia,East Asia
+JPN,Japan,110,392,906,Eastern Asia,East Asia
+MNG,Mongolia,141,496,906,Eastern Asia,Central Asia and Russia
+KOR,Republic of Korea,117,410,906,Eastern Asia,East Asia
+BRN,Brunei Darussalam,26,96,920,South-Eastern Asia,Southeast Asia
+KHM,Cambodia,115,116,920,South-Eastern Asia,Southeast Asia
+IDN,Indonesia,101,360,920,South-Eastern Asia,Southeast Asia
+LAO,Lao People's Democratic Republic,120,418,920,South-Eastern Asia,Southeast Asia
+MYS,Malaysia,131,458,920,South-Eastern Asia,Southeast Asia
+MMR,Myanmar,28,104,920,South-Eastern Asia,Southeast Asia
+PHL,Philippines,171,608,920,South-Eastern Asia,Southeast Asia
+SGP,Singapore,200,702,920,South-Eastern Asia,Southeast Asia
+THA,Thailand,216,764,920,South-Eastern Asia,Southeast Asia
+TLS,Timor-Leste,176,626,920,South-Eastern Asia,Southeast Asia
+VNM,Viet Nam,237,704,920,South-Eastern Asia,Southeast Asia
+AIA,Anguilla,258,660,915,Caribbean,Latin America and Caribbean
+ATG,Antigua and Barbuda,8,28,915,Caribbean,Latin America and Caribbean
+ABW,Aruba,22,533,915,Caribbean,Latin America and Caribbean
+BHS,Bahamas,12,44,915,Caribbean,Latin America and Caribbean
+BRB,Barbados,14,52,915,Caribbean,Latin America and Caribbean
+VGB,British Virgin Islands,239,92,915,Caribbean,Latin America and Caribbean
+CYM,Cayman Islands,36,136,915,Caribbean,Latin America and Caribbean
+CUB,Cuba,49,192,915,Caribbean,Latin America and Caribbean
+DMA,Dominica,55,212,915,Caribbean,Latin America and Caribbean
+DOM,Dominican Republic,56,214,915,Caribbean,Latin America and Caribbean
+GRD,Grenada,86,308,915,Caribbean,Latin America and Caribbean
+GLP,Guadeloupe,87,312,915,Caribbean,Latin America and Caribbean
+HTI,Haiti,93,332,915,Caribbean,Latin America and Caribbean
+JAM,Jamaica,109,388,915,Caribbean,Latin America and Caribbean
+MTQ,Martinique,135,474,915,Caribbean,Latin America and Caribbean
+MSR,Montserrat,142,500,915,Caribbean,Latin America and Caribbean
+PRI,Puerto Rico,177,630,915,Caribbean,Latin America and Caribbean
+KNA,Saint Kitts and Nevis,188,659,915,Caribbean,Latin America and Caribbean
+LCA,Saint Lucia,189,662,915,Caribbean,Latin America and Caribbean
+VCT,Saint Vincent and the Grenadines,191,670,915,Caribbean,Latin America and Caribbean
+TTO,Trinidad and Tobago,220,780,915,Caribbean,Latin America and Caribbean
+TCA,Turks and Caicos Islands,224,796,915,Caribbean,Latin America and Caribbean
+VIR,United States Virgin Islands,240,850,915,Caribbean,Latin America and Caribbean
+BLZ,Belize,23,84,916,Central America,Latin America and Caribbean
+CRI,Costa Rica,48,188,916,Central America,Latin America and Caribbean
+SLV,El Salvador,60,222,916,Central America,Latin America and Caribbean
+GTM,Guatemala,89,320,916,Central America,Latin America and Caribbean
+HND,Honduras,95,340,916,Central America,Latin America and Caribbean
+MEX,Mexico,138,484,916,Central America,Latin America and Caribbean
+NIC,Nicaragua,157,558,916,Central America,Latin America and Caribbean
+PAN,Panama,166,591,916,Central America,Latin America and Caribbean
+ARG,Argentina,9,32,931,South America,South America
+BOL,Bolivia (Plurinational State of),19,68,931,South America,South America
+BRA,Brazil,21,76,931,South America,South America
+CHL,Chile,40,152,931,South America,South America
+COL,Colombia,44,170,931,South America,South America
+ECU,Ecuador,58,218,931,South America,South America
+FLK,Falkland Islands (Malvinas),65,238,931,South America,South America
+GUF,French Guiana,69,254,931,South America,South America
+GUY,Guyana,91,328,931,South America,South America
+PRY,Paraguay,169,600,931,South America,South America
+PER,Peru,170,604,931,South America,South America
+SUR,Suriname,207,740,931,South America,South America
+URY,Uruguay,234,858,931,South America,South America
+VEN,Venezuela (Bolivarian Republic of),236,862,931,South America,South America
+AUS,Australia,10,36,927,Australia/New Zealand,Astralia and New Zealand
+NZL,New Zealand,156,554,927,Australia/New Zealand,Astralia and New Zealand
+FJI,Fiji,66,242,928,Melanesia,Oceania
+NCL,New Caledonia,153,540,928,Melanesia,Oceania
+PNG,Papua New Guinea,168,598,928,Melanesia,Oceania
+SLB,Solomon Islands,25,90,928,Melanesia,Oceania
+VUT,Vanuatu,155,548,928,Melanesia,Oceania
+GUM,Guam,88,316,954,Micronesia,Oceania
+KIR,Kiribati,83,296,954,Micronesia,Oceania
+MHL,Marshall Islands,127,584,954,Micronesia,Oceania
+NRU,Nauru,148,520,954,Micronesia,Oceania
+MNP,Northern Mariana Islands,163,580,954,Micronesia,Oceania
+PLW,Palau,180,585,954,Micronesia,Oceania
+ASM,American Samoa,5,16,957,Polynesia,Oceania
+COK,Cook Islands,47,184,957,Polynesia,Oceania
+PYF,French Polynesia,70,258,957,Polynesia,Oceania
+NIU,Niue,160,570,957,Polynesia,Oceania
+WSM,Samoa,244,882,957,Polynesia,Oceania
+TKL,Tokelau,218,772,957,Polynesia,Oceania
+TON,Tonga,219,776,957,Polynesia,Oceania
+TUV,Tuvalu,227,798,957,Polynesia,Oceania
+WLF,Wallis and Futuna Islands,243,876,957,Polynesia,Oceania
+BLR,Belarus,57,112,923,Eastern Europe,Europe
+BGR,Bulgaria,27,100,923,Eastern Europe,Europe
+CZE,Czechia,167,203,923,Eastern Europe,Europe
+HUN,Hungary,97,348,923,Eastern Europe,Europe
+POL,Poland,173,616,923,Eastern Europe,Europe
+MDA,Republic of Moldova,146,498,923,Eastern Europe,Europe
+ROU,Romania,183,642,923,Eastern Europe,Europe
+RUS,Russian Federation,185,643,923,Eastern Europe,Central Asia and Russia
+SVK,Slovakia,199,703,923,Eastern Europe,Europe
+UKR,Ukraine,230,804,923,Eastern Europe,Europe
+CHI,Channel Islands,259,830,924,Northern Europe,Europe
+DNK,Denmark,54,208,924,Northern Europe,Europe
+EST,Estonia,63,233,924,Northern Europe,Europe
+FRO,Faroe Islands,64,234,924,Northern Europe,Europe
+FIN,Finland,67,246,924,Northern Europe,Europe
+ISL,Iceland,99,352,924,Northern Europe,Europe
+IRL,Ireland,104,372,924,Northern Europe,Europe
+IMN,Isle of Man,264,833,924,Northern Europe,Europe
+LVA,Latvia,119,428,924,Northern Europe,Europe
+LTU,Lithuania,126,440,924,Northern Europe,Europe
+NOR,Norway,162,578,924,Northern Europe,Europe
+SWE,Sweden,210,752,924,Northern Europe,Europe
+GBR,United Kingdom,229,826,924,Northern Europe,Europe
+ALB,Albania,3,8,925,Southern Europe,Europe
+AND,Andorra,6,20,925,Southern Europe,Europe
+BIH,Bosnia and Herzegovina,80,70,925,Southern Europe,Europe
+HRV,Croatia,98,191,925,Southern Europe,Europe
+GIB,Gibraltar,82,292,925,Southern Europe,Europe
+GRC,Greece,84,300,925,Southern Europe,Europe
+ITA,Italy,106,380,925,Southern Europe,Europe
+MLT,Malta,134,470,925,Southern Europe,Europe
+MNE,Montenegro,273,499,925,Southern Europe,Europe
+MKD,North Macedonia,154,807,925,Southern Europe,Europe
+PRT,Portugal,174,620,925,Southern Europe,Europe
+SMR,San Marino,192,674,925,Southern Europe,Europe
+SRB,Serbia,272,688,925,Southern Europe,Europe
+SVN,Slovenia,198,705,925,Southern Europe,Europe
+ESP,Spain,203,724,925,Southern Europe,Europe
+AUT,Austria,11,40,926,Western Europe,Europe
+BEL,Belgium,255,56,926,Western Europe,Europe
+FRA,France,68,250,926,Western Europe,Europe
+DEU,Germany,79,276,926,Western Europe,Europe
+LIE,Liechtenstein,125,438,926,Western Europe,Europe
+LUX,Luxembourg,256,442,926,Western Europe,Europe
+NLD,Netherlands,150,528,926,Western Europe,Europe
+CHE,Switzerland,211,756,926,Western Europe,Europe
+BMU,Bermuda,17,60,21,Northern America,North America
+CAN,Canada,33,124,21,Northern America,North America
+GRL,Greenland,85,304,21,Northern America,North America
+SPM,Saint Pierre and Miquelon,190,666,21,Northern America,North America
+USA,United States of America,231,840,21,Northern America,North America
