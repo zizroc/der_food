@@ -26,14 +26,13 @@ Population data from the SSP database at IIASA. Reference: [Keywan Riahi, et al.
 
 Set path to your Data folder
 ```{r}
-ssp_path <- "/home/thomson/Data/SSPs/"
-data_path <- "/home/thomson/Projects/iep_food/data/"
+wd_path <- getwd()
+data_path <- paste0(wd_path, "/Data")
 ```
 
 
 ```{r}
-ssp_base <- read.csv(file = paste0(ssp_path, 
-                                   "SspDb_country_data_2013-06-12.csv"), 
+ssp_base <- read.csv(file = paste0(data_path, "/SspDb_country_data_2013-06-12.csv"), 
                      header = TRUE, 
                      stringsAsFactors = FALSE)
 ```
@@ -135,10 +134,10 @@ p0
 
 I use the SSP population cohorts to make a bottom-up calculation of DER, based on healthy DER from the FAO. Source: Daily energy requirements for humans from the FAO: [Joint, F.A.O. (2004). Human energy requirements. Report of a Joint FAO/WHO/UNU Expert Consultation, Rome, 17-24 October 2001.](http://www.fao.org/3/y5686e/y5686e00.htm).
 
-If necesary, load SSP population data frame wrangled earlier.
+If necessary, load SSP population data frame wrangled earlier.
 ```{r}
-output_path <- "/home/thomson/Projects/iep_food/IEP_food_demand_files/"
-load(file = paste0(output_path, "ssp_world_long.Rdata"))
+# output_path <- "/home/thomson/Projects/iep_food/IEP_food_demand_files/"
+# load(file = paste0(output_path, "ssp_world_long.Rdata"))
 ```
 
 Daily energy requirements (MJ/day and kcal/day) for children (1-17.9 years old) and adults (18+ yrs old) differ by age range, gender, body mass, and activity level. Data from FAO/WHO/UNU (2004) were compiled into a clean CSV `der_harmonized`. In summary:
@@ -157,7 +156,7 @@ Source: [FAO/WHO/UNU. (2004). Human Energy Requirements: Report of a Joint FAO/W
 der_harmonized <- readr::read_csv(
   file = paste0(
     data_path,
-    "Daily Energy Requirements for Humans - smoothed_harmonized_der.csv"
+    "/Daily Energy Requirements for Humans - smoothed_harmonized_der.csv"
   ),
   col_types = cols(
     age_min = col_double(),
@@ -229,8 +228,6 @@ p1
 
 Every child (1-2 years) has moderate energy requirements; other ages are linearly interpolated between DER for 1.5 yrs and 5.5 yrs; infants (0-1 years) are dependent on their mothers.
 
-
-
 There is a discontinuity in the DER between ages 18 and 19, probably because of the age-bracket averaging (18-30 years) for in the `der_adult` data set. Therefore, I use the values from the LOESS models (lines on the plot) as a "smoothed" version of the DER values from the harmonized data set.
 
 ```{r}
@@ -282,12 +279,6 @@ tmp <- rbind(data.frame(gender = "female",
 tmp$gender <- as.character(tmp$gender)
 tmp$activity_level <- as.character(tmp$activity_level)
 
-# clean_fit_data <- extracted_fit_data %>% 
-#   dplyr::mutate(age = round(age)) %>% 
-#   dplyr::full_join(tmp, 
-#                    by = c("gender", "activity_level", "age")) %>% 
-#   dplyr::arrange(age)
-
 clean_fit_data <- der_harmonized %>%
   dplyr::mutate(age = round(age_ave)) %>%
   dplyr::full_join(tmp, by = c("gender", "activity_level", "age")) %>%
@@ -295,7 +286,7 @@ clean_fit_data <- der_harmonized %>%
   tidyr::drop_na() %>%
   dplyr::arrange(age)
 
-head(clean_fit_data)
+# head(clean_fit_data)
 
 ```
 
@@ -452,11 +443,10 @@ fit_data_final <- clean_fit_data %>%
   dplyr::summarise(kcal_mean = mean(der_interp),
                    .groups = "drop")
 
-head(fit_data_final)
+# head(fit_data_final)
 ```
 
 Join the mean-DER and metabolic requirements data frames.
-
 ```{r}
 
 ssp_kcal <- ssp_world_long %>% 
@@ -464,7 +454,7 @@ ssp_kcal <- ssp_world_long %>%
             by = c("gender", "min_age", "max_age")) %>% 
   dplyr::mutate(million_kcal_perDay = millions*kcal_mean)
 
-head(ssp_kcal)
+# head(ssp_kcal)
 
 ```
 
@@ -643,7 +633,7 @@ ssp_edu_long <- ssp_edu %>%
   dplyr::mutate(year = as.numeric(year)) %>%
   tidyr::drop_na()
 
-head(ssp_edu_long)
+# head(ssp_edu_long)
 
 ```
 
@@ -681,6 +671,7 @@ ssp5_kcal_edu <- ssp_edu_long %>%
 
 ```
 
+Bind these dfs by row. Now `kcal_edu` is a df of average kcal demand, with a scaling factor of millions of persons per year, by year, SSP, country, sex, education level, age bracket, and activity level.
 ```{r}
 kcal_edu <- ssp1_kcal_edu %>% 
   bind_rows(ssp2_kcal_edu) %>% 
@@ -701,7 +692,7 @@ ssp2_kcal_edu <- ssp_edu_long %>%
                    by = c("gender", "min_age", "max_age", "activity_level")) %>% 
   tidyr::drop_na()
 
-head(ssp2_kcal_edu)
+# head(ssp2_kcal_edu)
 ```
 
 ### Food security indicators
@@ -714,7 +705,7 @@ Trim the df to pull dietary energy supply (kcal/cap/day), average fat supply (g/
 
 fao_food_security_data <-
   read_csv(
-    file = paste0(data_path, "Food_Security_cleaned.csv"),
+    file = paste0(data_path, "/Food_Security_cleaned.csv"),
     col_types = cols(
       Area_Code = col_double(),
       Area = col_character(),
@@ -765,7 +756,7 @@ Load some geographic mapping data, along with a CSV file used to harmonize geogr
 if(!exists("loc_map")) {
   loc_map <- readr::read_csv(
     paste0(
-      "~/Projects/IEP_2/Model/R_files/Data_files/", "location_code_map_data.csv"
+      data_path, "/location_code_map_data.csv"
     ), 
     col_types = cols(
       Location   = col_character(), 
@@ -776,8 +767,9 @@ if(!exists("loc_map")) {
       Area.Code  = col_number(), 
       Area       = col_character())
   ) %>% 
-    dplyr::select(-X1) %>% 
     drop_na()
+  
+  loc_map <- loc_map[,-c(1)]
 }
 
 loc_map_reduced <- loc_map %>% 
@@ -869,7 +861,7 @@ head(der_surpluses)
 
 ```{r}
 regions_map <- read_csv(
-  file = paste0(data_path, "regions_map.csv"),
+  file = paste0(data_path, "/regions_map.csv"),
   col_types = cols(
     iso_alpha3 = col_character(),
     countryname = col_character(),
@@ -917,7 +909,7 @@ ssp2_pop_regions <- ssp2_kcal_edu %>%
     )
   )))
 
-head(ssp2_pop_regions)
+# head(ssp2_pop_regions)
 
 ```
 
@@ -929,11 +921,11 @@ der_surpluses_regions <- der_surpluses %>%
   dplyr::select(-subregionname) %>% 
   tidyr::drop_na()
 
-head(der_surpluses_regions)
+# head(der_surpluses_regions)
 
 ```
 
-Now plot these.
+Now plot these. Factored regions are added for plotting.
 ```{r}
 der_surpluses_regions <- der_surpluses_regions %>% 
   dplyr::mutate(region_f = region)
@@ -984,14 +976,13 @@ According to the FAO numbers, only countries in North America, Europe, Australia
 ```{r}
 
 n_df <- der_surpluses_regions %>%
-  dplyr::filter(year == 2020, scenario == "SSP1") %>%
+  dplyr::filter(year == 2020 & scenario == "SSP1") %>%
   dplyr::group_by(region) %>%
   summarise(n = n(),
             .groups = "drop")
 
-p2b <- ggplot(data = der_surpluses_regions,
-              # %>%
-              #   dplyr::filter(year == 2020),
+p2b <- ggplot(data = der_surpluses_regions %>%
+                dplyr::filter(year == 2020),
               aes(x = scenario,
                   y = der_surplus)) +
   geom_hline(yintercept = 0, alpha = 0.8) +
@@ -1059,7 +1050,7 @@ der_ssp_2050 <- ssp2_kcal_edu %>%
   dplyr::left_join(regions_map, by = "REGION")
 
 
-head(der_ssp_2050)
+# head(der_ssp_2050)
 ```
 
 
@@ -1347,7 +1338,7 @@ These national dietary plans were organised into .csv files.
 
 ela_phd <-
   readr::read_csv(
-    file = paste0(data_path, "National dietary plans - ELA-PHD.csv"),
+    file = paste0(data_path, "/National dietary plans - ELA-PHD.csv"),
     col_types = cols(
       ELA_PHD = col_character(),
       kcal_day = col_double(),
@@ -1361,7 +1352,7 @@ ela_phd <-
 
 fda_sdp <-
   readr::read_csv(
-    file = paste0(data_path, "National dietary plans - FDA-SDP.csv"),
+    file = paste0(data_path, "/National dietary plans - FDA-SDP.csv"),
     col_types = cols(
       kcal_requirement = col_double(),
       FDA_SDP = col_character(),
@@ -1374,7 +1365,7 @@ fda_sdp <-
 
 cns_cfp <-
   readr::read_csv(
-    file = paste0(data_path, "National dietary plans - CNS-CFP.csv"),
+    file = paste0(data_path, "/National dietary plans - CNS-CFP.csv"),
     col_types = cols(
       CNS_CFP = col_character(),
       kcal_day = col_double(),
@@ -1385,24 +1376,10 @@ cns_cfp <-
     )
   )
 
-# cdc_usd <-
-#   readr::read_csv(
-#     file = paste0(data_path, "National dietary plans - CDC-USD.csv"),
-#     col_types = cols(
-#       CDC_USD = col_character(),
-#       kcal_day = col_double(),
-#       g_day_ave = col_double(),
-#       kcal_ratio = col_double(),
-#       mass_ratio = col_double(),
-#       g_per_kcal = col_double(),
-#       notes = col_character()
-#     )
-#   )
-
 ```
 
+
 ```{r}
-# knitr::kable(cdc_usd[,1:5], caption = "CDC NHANES actual American diet")
 # knitr::kable(ela_phd[,1:4], caption = "EAT-Lancet Planetary Health Diet Plan")
 # knitr::kable(fda_sdp[c(1,16,31,46,61,76,91,106),1:4], caption = "US Food and Drug Administration Healthy Diet Plan")
 # knitr::kable(cns_cfp[,1:5], caption = "Chinese Nutrition Sociey Food Guide Pagoda Plan")
@@ -1418,7 +1395,7 @@ national_food_plan_map <-
   readr::read_csv(
     file = paste0(
       data_path,
-      "National dietary plans - national_food_plan_map.csv"
+      "/National dietary plans - national_food_plan_map.csv"
     ),
     col_types = cols(
       national_food_plan = col_character(),
@@ -1542,18 +1519,6 @@ all_plans_mapped <- ela_phd_mapped %>%
       "diet_plan"
     )
   ) 
-# %>%
-#   dplyr::full_join(
-#     cdc_usd_mapped,
-#     by = c(
-#       "model_group",
-#       "kcal_day",
-#       "g_kcal",
-#       "kcal_ratio",
-#       "mass_ratio",
-#       "diet_plan"
-#     )
-#   )
 
 ```
 
@@ -1583,7 +1548,7 @@ The diet plans are summarised in the table.
 ```{r}
 
 # knitr::kable(all_plans_mapped[,1:4], caption = "All diet plans")
-head(all_plans_mapped)
+all_plans_mapped
 ```
 
 Wrangle to widen data frames for each diet plan.
@@ -1603,11 +1568,6 @@ cns_cpf_wide <- all_plans_mapped %>%
   dplyr::filter(diet_plan == "CNS-CFP" & model_group != "total") %>% 
   dplyr::select(diet_plan, model_group, kcal_ratio) %>% 
   tidyr::pivot_wider(., names_from = "model_group", values_from = "kcal_ratio")
-
-# cdc_usd_wide <- all_plans_mapped %>% 
-#   dplyr::filter(diet_plan == "CDC-USD" & model_group != "total") %>% 
-#   dplyr::select(diet_plan, model_group, kcal_ratio) %>% 
-#   tidyr::pivot_wider(., names_from = "model_group", values_from = "kcal_ratio")
 
 ```
 
@@ -1656,19 +1616,6 @@ kcal_edu_cpf <- kcal_edu %>%
   dplyr::mutate(animal_products = beef_lamb_pork + chicken_poultry + eggs + dairy, 
                 plant_products = cereals + fruits + legumes + oils + roots_tubers + vegetables + treenuts + sugarcrops) %>% 
   dplyr::select(SCENARIO, REGION, diet_plan, year, animal_products, fish_seafood, plant_products)
-
-
-# There appears to have been an error in my assumptions to make the CDC_USD diet data
-# kcal_edu_cdc <- kcal_edu %>% 
-#   dplyr::bind_cols(cdc_usd_wide) %>% 
-#   dplyr::mutate(across(beef_lamb_pork:vegetables, ~ .x*millions*kcal_mean)) %>% 
-#   dplyr::group_by(SCENARIO, REGION, diet_plan, year) %>% 
-#   dplyr::summarise(across(beef_lamb_pork:vegetables, ~ sum(.x, na.rm = TRUE)), 
-#                    .groups = "drop") %>% 
-#   dplyr::ungroup() %>% 
-#   dplyr::mutate(animal_products = beef_lamb_pork + chicken_poultry + eggs + dairy, 
-#                 plant_products = cereals + fruits + legumes + roots_tubers + vegetables + sugarcrops + treenuts) %>% 
-#   dplyr::select(SCENARIO, REGION, diet_plan, year, animal_products, fish_seafood, plant_products)
 
 ```
 
@@ -2147,14 +2094,6 @@ kcal_edu_cpf <- kcal_edu %>%
   dplyr::ungroup() 
 
 
-# kcal_edu_cdc <- kcal_edu %>% 
-#   dplyr::bind_cols(cdc_usd_wide) %>% 
-#   dplyr::mutate(across(beef_lamb_pork:vegetables, ~ .x*millions*kcal_mean)) %>% 
-#   dplyr::group_by(SCENARIO, REGION, diet_plan, year) %>% 
-#   dplyr::summarise(across(beef_lamb_pork:vegetables, ~ sum(.x, na.rm = TRUE)), 
-#                    .groups = "drop") %>% 
-#   dplyr::ungroup() 
-
 ```
 
 
@@ -2164,7 +2103,6 @@ Now bind these by rows.
 all_plans_df <- kcal_edu_phd %>% 
   dplyr::bind_rows(kcal_edu_fda) %>% 
   dplyr::bind_rows(kcal_edu_cpf) %>% 
-  # dplyr::bind_rows(kcal_edu_cdc) %>% 
   dplyr::rename(iso_alpha3 = REGION) %>% 
   dplyr::left_join(loc_map_reduced %>% 
                      dplyr::select(iso_alpha3, subregionname), 
@@ -2173,7 +2111,6 @@ all_plans_df <- kcal_edu_phd %>%
 all_plans_df1 <- kcal_edu_phd %>% 
   dplyr::full_join(kcal_edu_fda) %>% 
   dplyr::full_join(kcal_edu_cpf) %>% 
-  # dplyr::full_join(kcal_edu_cdc) %>% 
   dplyr::rename(iso_alpha3 = REGION) %>% 
   dplyr::left_join(loc_map_reduced %>% 
                      dplyr::select(iso_alpha3, subregionname), 
@@ -2187,8 +2124,8 @@ all_plans_df1 <- kcal_edu_phd %>%
 What crop production is required to satisfy each dietary guideline, by country?
 
 ```{r}
-output_path <-
-  "/home/thomson/Projects/iep_food/IEP_food_demand_files/"
+# output_path <-
+#   "/home/thomson/Projects/iep_food/IEP_food_demand_files/"
 # readr::write_csv(EATlancet_diet_map,
 #                  file = paste0(output_path, "EATlancet_diet_map", ".csv"))
 ```
@@ -2246,7 +2183,7 @@ Source: [Alexander, P., Brown, C., Arneth, A., Finnigan, J., Moran, D. and Rouns
 ```{r}
 value_chain_loss <-
   readr::read_csv(
-    file = "~/Data/IEP_Model/data_iep_model/Alexander_etal_2017_food_waste - summary.csv",
+    file = paste0(data_path, "/Alexander_etal_2017_food_waste - summary.csv"),
     col_types = cols(.default = col_double(),
                      iep_subregions = col_character())
   )
@@ -2320,7 +2257,7 @@ Next consider feed crop demand from livestock, based on feed conversion ratios (
 animal_protein_matrix <- readr::read_csv(
   paste0(
     data_path,
-    "National dietary plans - animal_protein_mashup_matrix.csv"
+    "/National dietary plans - animal_protein_mashup_matrix.csv"
   ),
   col_types = cols(
     model_group = col_character(),
@@ -2381,22 +2318,6 @@ Now use carcass weight FCR to determine how much dry matter each livestock class
 Feed conversion ratio. Source: [Livestock conversion efficiencies are given as reported in Alexander et al. (2016). Alexander, P., Brown, C., Arneth, A., Finnigan, J., & Rounsevell, M. D. (2016). Human appropriation of land for food: the role of diet. Global Environmental Change, 41, 88-98.]("http://www.sciencedirect.com/science/article/pii/S0959378016302370?via%3Dihub#bib0330")
 
 ```{r}
-# fcr_map <-
-#   data.frame(
-#     model_group = c(
-#       "bovine_meat",
-#       "bovine_dairy",
-#       "poultry_meat",
-#       "poultry_eggs",
-#       "sus_meat",
-#       "caprine_meat",
-#       "caprine_dairy",
-#       "fish",
-#       "other_seafood",
-#       "freshwater_fish"
-#     ),
-#     fcr = c(8, 8, 1.9, 1.9, 3.9, 5, 5, 1.3, 0, 1.3)
-#   )
 
 fcr_map <-
   data.frame(
@@ -2452,7 +2373,7 @@ live_feed_weight <- model_group_live_food_weight %>%
   dplyr::mutate(tonnes_day = tonnes_day*fcr) %>% 
   dplyr::select(-fcr)
 
-head(live_feed_weight)
+# head(live_feed_weight)
 ```
 
 
@@ -2465,14 +2386,14 @@ Source: [FAOSTAT Food Balances.](https://fenixservices.fao.org/faostat/static/bu
 
 ```{r}
 if(!exists("food_balance_data")){
-  food_balance_data <- read.csv(file = "~/Projects/iep_food/data/FAO/FoodBalanceSheetsHistoric_E_All_Data_(Normalized).csv", 
+  food_balance_data <- read.csv(file = paste0(data_path, "/FoodBalanceSheetsHistoric_E_All_Data_(Normalized).csv"), 
                                 header = TRUE, 
                                 stringsAsFactors = FALSE) %>% 
-    dplyr::filter(Year.Code >= 2000)
+    dplyr::filter(Year >= 2000) 
 }
 
 if(!exists("combined_item_group_mapper")){
-  source(file = "~/Projects/IEP_2/Model/R_files/Data_files/FAO_item_group_mapper.R") #combined_item_group_mapper
+  source(file = paste0(data_path, "/FAO_item_group_mapper.R")) #combined_item_group_mapper
 }
 
 food_balance_data_defs <- food_balance_data %>% 
@@ -2480,9 +2401,8 @@ food_balance_data_defs <- food_balance_data %>%
             by = c("Item.Code", "Item"))
 ```
 
-
+Summarise by food, feed, seed, etc. categories.
 ```{r}
-
 feed_regions <- food_balance_data_defs %>% 
   dplyr::filter(Element.Code == 5521 & !is.na(model_group)) %>% 
   dplyr::group_by(Area.Code, Area, Year, model_group) %>% 
@@ -2774,7 +2694,7 @@ feed_ingredient_demand <- live_feed_weight %>%
   dplyr::mutate(across(bovine_dairy:caprine_meat)*tonnes_day) %>% 
   dplyr::select(-tonnes_day)
 
-head(feed_ingredient_demand)
+# head(feed_ingredient_demand)
 ```
 
 Now summarise to find the total demand of feed ingredients by scenario, diet, and country.
