@@ -1,5 +1,5 @@
 ---
-title: "Diet Transformation"
+title: "Diet Shifts"
 author: "Marcus J Thomson"
 date: "10/7/2021"
 output: html_document
@@ -18,12 +18,13 @@ library(cowplot)
 library(zoo)
 ```
 
-# Dietary Transformation Pathways
+# Dietary Shift Pathways
 
 Here I calculate pathway trajectories from the present food/feed supply patterns to hypothetical future patterns based on demands from the projections calculated in `iep_healthy_food.Rmd`.
 
 ```{r}
-data_path <- "/home/thomson/Projects/iep_food/data/"
+wd_path <- getwd()
+data_path <- paste0(wd_path, "/Data")
 ```
 
 ## FAO Food Balance Data
@@ -32,7 +33,7 @@ Read in Food Balance data from FAOSTAT. Source: [FAOSTAT.](http://www.fao.org/fa
 
 ```{r}
 foodbalance_df <- readr::read_csv(
-  file = paste0(data_path, "FoodBalanceSheets_E_All_Data_(Normalized).csv"),
+  file = paste0(data_path, "/FoodBalanceSheets_E_All_Data_(Normalized).csv"),
   col_types = cols(
     `Area Code` = col_double(),
     Area = col_character(),
@@ -63,9 +64,10 @@ foodbalance_df <- readr::read_csv(
 ```
 
 I made a separate CSV file to map the FAO elements/element codes onto the model_groups I use for this analysis.
+
 ```{r}
 foodbalance_map <- readr::read_csv(
-  file = paste0(data_path, "Daily Energy Requirements for Humans - food_map.csv"),
+  file = paste0(data_path, "/Daily Energy Requirements for Humans - food_map.csv"),
   col_types = cols(
     item_code = col_double(),
     item = col_character(),
@@ -78,6 +80,7 @@ foodbalance_map <- readr::read_csv(
 ```
 
 Select only those elements that have to do with food and food supply.
+
 ```{r}
 
 food_elements <- data.frame(
@@ -89,6 +92,7 @@ food_elements <- data.frame(
 ```
 
 Merge the FAO df with the foodbalance mapper to create clean dfs `food_df` and `feed_df`.
+
 ```{r}
 food_df <- foodbalance_df %>%
   dplyr::filter(element_code %in% c(5142)) %>%
@@ -105,6 +109,7 @@ feed_df <- foodbalance_df %>%
 ```
 
 Aggregate tonnes of food/feed by model_group.
+
 ```{r}
 
 food_countries <- food_df %>% 
@@ -119,7 +124,8 @@ feed_countries <- feed_df %>%
 
 ```
 
-Let's have a look at world production of food and feed. 
+Let's have a look at world production of food and feed.
+
 ```{r}
 
 food_world <- food_countries %>% 
@@ -151,6 +157,7 @@ food_feed_grouped_data <- food_grouped_data %>%
 ```
 
 Visualise total annual global food and feed supply.
+
 ```{r}
 p1 <- ggplot(food_feed_grouped_data, 
        aes(x = year, 
@@ -163,16 +170,18 @@ p1 <- ggplot(food_feed_grouped_data,
     legend.title = element_blank(), 
     axis.title.x = element_blank()
   ) + 
+  scale_x_continuous(breaks = seq(2010,2019,by=1)) + 
   labs(
     title = "Global production of agricultural food and feed", 
     y = "Gt/year", 
-    caption = "Data: FAOSTAT FBS (2018)"
+    caption = "Data: FAOSTAT FBS (2022)"
   )
 
 p1
 ```
 
 How does this compare to demand in future?
+
 ```{r}
 population <- foodbalance_df %>% 
   dplyr::filter(element_code %in% c(511)) %>% 
@@ -216,7 +225,7 @@ fao_kcal_diff <- fao_kcal_diff %>%
   dplyr::mutate(diet_plan_f = diet_plan)
 fao_kcal_diff$diet_plan_f <- factor(fao_kcal_diff$diet_plan_f, levels = c("ELA-PHD", "CNS-CFP", "FDA-SDP"))
 
-fao_kcal_diff
+# fao_kcal_diff
 ```
 
 ```{r}
@@ -416,7 +425,6 @@ p2e <- ggplot(
   facet_wrap( ~ year)
 ```
 
-
 ```{r}
 
 p2 <- cowplot::plot_grid(p2a, p2b, p2c, p2d, p2e, p2_legend_only)
@@ -424,6 +432,7 @@ p2
 ```
 
 Plot the same as above with ranges only for SSPs.
+
 ```{r}
 fao_kcal_diff_ranges <- fao_kcal_diff %>%
   dplyr::filter(diet_plan != "FAO") %>%
@@ -588,8 +597,6 @@ p3c <- ggplot(
 cowplot::plot_grid(p3a, p3b, p3c, p3_legend_only, ncol = 1, rel_heights = c(1, 0.8, 0.9, 0.2))
 
 ```
-
-
 
 ```{r}
 
@@ -767,7 +774,6 @@ p3e <- ggplot(
   facet_wrap( ~ year)
 ```
 
-
 ```{r}
 
 p3 <- cowplot::plot_grid(p3a, p3b, p3c, p3d, p3e, p3_legend_only)
@@ -817,11 +823,9 @@ diet_diffs <- tmp3 %>%
                 pc_diff = diff/tonnes_yr_2018)
 ```
 
-
 ```{r}
 # diet_diffs
 ```
-
 
 ```{r}
 cols <- data.frame(
@@ -833,7 +837,7 @@ labz <- c("food", "feed")
 # ymax <- (max(global_crop_demand_food_feed_diff$diff) + 0.05 * max(global_crop_demand_food_feed_diff$diff)) * 1e-9
 # ymin <- 0
 
-ymax <- 0.75
+ymax <- 0.9
 ymin <- -0.55 
 
 
@@ -1020,6 +1024,7 @@ p2e <- ggplot(
 ```
 
 Axis arrows
+
 ```{r}
 mitigate_arrow <- ggplot(data = data.frame(x = c(0,1), y = c(0,1)), 
        aes(x = x, y = y)) + 
@@ -1048,7 +1053,6 @@ adapt_arrow <- ggplot(data = data.frame(x = c(0,1), y = c(0,1)),
 # mitigate_arrow
 # adapt_arrow
 ```
-
 
 ```{r}
 
@@ -1263,7 +1267,6 @@ p3e <- ggplot(
   facet_wrap( ~ year)
 ```
 
-
 ```{r}
 
 pa <- plot_grid(p3e, p3a, ncol = 1)
@@ -1278,8 +1281,9 @@ cowplot::plot_grid(mitigate_arrow, p3, NA, adapt_arrow, ncol = 2, rel_widths = c
 ```
 
 Relative change.
+
 ```{r}
-ymax <- 0.8
+ymax <- 0.9
 ymin <- -0.6
 
 
@@ -1489,13 +1493,9 @@ cowplot::plot_grid(mitigate_arrow, p3, NA, adapt_arrow, ncol = 2, rel_widths = c
 ```
 
 Return to the projections computed earlier. Recall: the projections were based on a bottom-up calculation of food and feed weight based on caloric demands for healthy diets, under the five SSPs and three diet plans.
-```{r}
-# save(food_feed_grouped_data, file = paste0(data_path, "food_feed_grouped_data.R"))
-load(file = paste0(data_path, "food_feed_grouped_data.R")) #food_feed_grouped_data
-
-```
 
 Merge the data with the projections computed earlier.
+
 ```{r}
 food_feed_data_scenario <- food_feed_grouped_data %>% 
   dplyr::mutate(SCENARIO = "FAOSTAT", 
@@ -1511,6 +1511,7 @@ food_feed_data_scenario <- food_feed_grouped_data %>%
 ```
 
 To test the skill of the bottom-up calculation, compare to the food balance data. I run a short check of the data with a visualisation below.
+
 ```{r}
 compare <- global_crop_demand_food_feed %>% 
   dplyr::select(-tonnes_day) %>% 
@@ -1527,6 +1528,7 @@ compare <- global_crop_demand_food_feed %>%
 ```
 
 The plotted points appear roughly in line with the healthy "US-style" diet from the FDA.
+
 ```{r}
 
 p2 <- ggplot(data = food_feed_data_scenario %>% 
@@ -1549,14 +1551,15 @@ p2
 
 ```
 
-Transform diets by 2050 and by 2075, for each SSP.
+Shift diets by 2050 and by 2075, for each SSP.
 
-Transform by 2050. Interpolate lowest acceleration pathway for each food/feed type to its target value.
+Shift by 2050. Interpolate lowest acceleration pathway for each food/feed type to its target value.
 
-1. Linearly extrapolate data values from 2014-18 to 2022.
-2. Find the lowest-energy trajectory from 2022 to the target year, 2050 or 2075. The lowest energy should have the constraints: (i) lowest second derivative wrt time; (ii) first derivative that equals the slope of the line at 2022; (iii) passes through the appropriate values at 2022 and 2050. A spline should be appropriate.
+1.  Linearly extrapolate data values from 2014-18 to 2022.
+2.  Find the lowest-energy trajectory from 2022 to the target year, 2050 or 2075. The lowest energy should have the constraints: (i) lowest second derivative wrt time; (ii) first derivative that equals the slope of the line at 2022; (iii) passes through the appropriate values at 2022 and 2050. A spline should be appropriate.
 
 Recode country names and merge with regions.
+
 ```{r}
 Food_countries <- food_countries %>% 
   dplyr::rename(fao_countrycode = area_code) %>% 
@@ -1570,17 +1573,21 @@ Feed_countries <- feed_countries %>%
 ```
 
 Do some cleanup first because some ISOa3 codes are not included.
+
 ```{r}
-food_2014_2018_data <- Food_countries %>%
+food_2014_2018_data <- Food_countries %>% 
+  dplyr::filter(year >= 2014 & year <= 2018) %>% 
   dplyr::select(year, model_group, tonnes_yr, iso_alpha3) %>%
   tidyr::drop_na()
 
-feed_2014_2018_data <- Feed_countries %>%
+feed_2014_2018_data <- Feed_countries %>% 
+  dplyr::filter(year >= 2014 & year <= 2018) %>%
   dplyr::select(year, model_group, tonnes_yr, iso_alpha3) %>%
   tidyr::drop_na()
 ```
 
 Fit linear models to data and predict to extrapolate to 2022. NB: In some cases, the fitter projects negative production values. These are zeroed out.
+
 ```{r}
 yrs <- data.frame(year = seq(2019, 2022, by = 1))
 
@@ -1594,14 +1601,15 @@ food_2019_2022_lm <- food_2014_2018_data %>%
   dplyr::ungroup() %>%
   tidyr::unnest(cols = c(lm_pred)) %>%
   dplyr::select(iso_alpha3, model_group, lm_pred) %>%
-  dplyr::mutate(year = rep(seq(2019, 2022, by = 1), 2212)) %>%
+  dplyr::mutate(year = rep(seq(2019, 2022, by = 1), 2288)) %>%
   dplyr::rename(tonnes_yr = lm_pred) %>%
   dplyr::mutate(tonnes_yr = ifelse(tonnes_yr < 0, 0, tonnes_yr))
  
 ```
 
 Do something similar for feed: mean values are fine -- the fitter is throwing rank-deficient fit warnings from some instances.
-```{r}
+
+```{r, warning=FALSE}
 feed_2019_2022_lm <- feed_2014_2018_data %>%
   dplyr::group_by(iso_alpha3, model_group) %>%
   tidyr::nest() %>%
@@ -1612,25 +1620,12 @@ feed_2019_2022_lm <- feed_2014_2018_data %>%
   dplyr::ungroup() %>%
   tidyr::unnest(cols = c(lm_pred)) %>%
   dplyr::select(iso_alpha3, model_group, lm_pred) %>%
-  dplyr::mutate(year = rep(seq(2019, 2022, by = 1), 1343)) %>%
+  dplyr::mutate(year = rep(seq(2019, 2022, by = 1), 1306)) %>%
   dplyr::rename(tonnes_yr = lm_pred)
-
-# tmp <- feed_2014_2018_data %>% 
-#   dplyr::filter(year == 2018) %>% 
-#   dplyr::select(-year)
-# 
-# feed_2019_2022 <- tmp %>% 
-#   dplyr::mutate(year = 2019) %>% 
-#   dplyr::bind_rows(tmp %>% 
-#                      dplyr::mutate(year = 2020)) %>% 
-#   dplyr::bind_rows(tmp %>% 
-#                      dplyr::mutate(year = 2021)) %>% 
-#   dplyr::bind_rows(tmp %>% 
-#                      dplyr::mutate(year = 2022))
 
 ```
 
-
+Bind to make harmonized (historical and future projected) food and feed dfs
 ```{r}
 food_2014_2022_est <- food_2014_2018_data %>% 
   bind_rows(food_2019_2022_lm)
@@ -1640,6 +1635,7 @@ feed_2014_2022_est <- feed_2014_2018_data %>%
 ```
 
 Use crop weight of food and crop ingredient weight of feed from earlier. We will only use the data for years 2023 and after.
+
 ```{r}
 # # save(food_weight, file = paste0(data_path, "food_weight.Rdata"))
 # load(file = paste0(data_path, "food_weight.Rdata")) #food_weight
@@ -1648,7 +1644,6 @@ Use crop weight of food and crop ingredient weight of feed from earlier. We will
 # load(file = paste0(data_path, "feed_ingredient_demand_summary.Rdata")) #feed_ingredient_demand_summary
 
 ```
-
 
 ```{r}
 food_proj <- food_weight %>%
@@ -1717,14 +1712,15 @@ feed_proj <- feed_ingredient_demand_summary %>%
 ```
 
 Set a target year
+
 ```{r}
 netzero_target_year <- 2050
 ```
 
-
 Confirm continuity between ISO codes so countries represented in 2022 are there in 2023, etc. Fill dummy values in for scenario and diet_plan for the FAO data. These are required for continuity in the spline fitter.
 
 ### For food pathways
+
 ```{r}
 years_tmp <- food_2014_2022_est %>% distinct(year) %>% pull(year)
 countries_tmp <- food_2014_2022_est %>% distinct(iso_alpha3) %>% pull(iso_alpha3)
@@ -1746,6 +1742,7 @@ food_2014_2022_est_tmp <- food_2014_2022_est %>%
 ```
 
 Do the same for `pathways` data frame representing values between 2023 and the target year to be filled by the spline values.
+
 ```{r}
 years_tmp <- seq(2023, netzero_target_year - 1, by = 1)
 countries_tmp <- food_2014_2022_est %>% distinct(iso_alpha3) %>% pull(iso_alpha3)
@@ -1759,6 +1756,7 @@ names(pathways_tmp) <- c("year", "iso_alpha3", "model_group", "diet_plan", "scen
 ```
 
 Merge the FAO-derived data with the empty pathways data frame.
+
 ```{r}
 food_data_pathways <- food_2014_2022_est_tmp %>% 
   full_join(pathways_tmp, by = c("year", "model_group", "tonnes_yr", "iso_alpha3", "diet_plan", "scenario"))
@@ -1767,6 +1765,7 @@ head(food_data_pathways)
 ```
 
 And the same for `food_targets`, the data frame for values at and above the target year.
+
 ```{r}
 years_tmp <- seq(netzero_target_year, 2080, by = 5)
 countries_tmp <- food_2014_2022_est %>% distinct(iso_alpha3) %>% pull(iso_alpha3)
@@ -1778,7 +1777,6 @@ tonnes_yr_tmp <- NA
 targets_tmp <- expand.grid(years_tmp, countries_tmp, model_groups_tmp, diet_plans_tmp, scenarios_tmp, tonnes_yr_tmp)
 names(targets_tmp) <- c("year", "iso_alpha3", "model_group", "diet_plan", "scenario", "tonnes_yr")
 ```
-
 
 ```{r}
 
@@ -1824,6 +1822,7 @@ head(food_targets)
 ```
 
 Confirm that all countries represented in `data_pathways` are represented in `targets`. For the spline interpolation to work, there must be tie points for all countries, diet_plans, and scenarios at 2022 and the `netzero_target_year`.
+
 ```{r}
 data_countries <- food_data_pathways %>% dplyr::distinct(iso_alpha3) %>% dplyr::pull(iso_alpha3)
 targ_countries <- food_targets %>% dplyr::distinct(iso_alpha3) %>% dplyr::pull(iso_alpha3)
@@ -1838,6 +1837,7 @@ food_targets_clean <- food_targets %>%
 ```
 
 Merge the time series together into a `harmonized_food_data_targets` data frame to run the interpolation on.
+
 ```{r}
 
 harmonized_food_data_targets <- food_2014_2022_est_clean %>%
@@ -1846,13 +1846,14 @@ harmonized_food_data_targets <- food_2014_2022_est_clean %>%
 
 ```
 
-Interpolate transformation pathways between the FAO food balance data (and linearly interpolated values to 2022 based on the FAO data) and target year values using a spline with all values as tie-points.
+Interpolate shift pathways between the FAO food balance data (and linearly interpolated values to 2022 based on the FAO data) and target year values using a spline with all values as tie-points.
+
 ```{r}
 
 food_pathways_tmp <- harmonized_food_data_targets %>% 
   # dplyr::filter(year >= 2018) %>% 
   dplyr::group_by(model_group, scenario, diet_plan, iso_alpha3) %>%
-  dplyr::mutate(tonnes_yr_interp = spline(
+  dplyr::mutate(tonnes_yr_interp = stats::spline(
     x = year,
     y = tonnes_yr,
     xout = year,
@@ -1883,13 +1884,12 @@ food_pathways_clean <- food_pathways %>%
 
 ```
 
-
 ```{r}
 ggplot(food_pathways %>% dplyr::filter(scenario == "SSP2", diet_plan == "ELA-PHD", model_group == "beef_lamb_pork"), aes(x = year, y = tonnes_yr)) + geom_point()
 ```
 
-
 ### For feed
+
 ```{r}
 years_tmp <- feed_2014_2022_est %>% distinct(year) %>% pull(year)
 countries_tmp <- feed_2014_2022_est %>% distinct(iso_alpha3) %>% pull(iso_alpha3)
@@ -1903,7 +1903,6 @@ names(empty_set) <- c("year", "iso_alpha3", "model_group", "diet_plan", "scenari
 
 ```
 
-
 ```{r}
 feed_2014_2022_est_tmp <- feed_2014_2022_est %>%
   full_join(empty_set, by = c("year", "model_group", "iso_alpha3")) %>%
@@ -1912,6 +1911,7 @@ feed_2014_2022_est_tmp <- feed_2014_2022_est %>%
 ```
 
 Do the same for `feed_pathways` data frame representing values between 2023 and the target year to be filled by the spline values.
+
 ```{r}
 years_tmp <- seq(2023, netzero_target_year - 1, by = 1)
 countries_tmp <- feed_2014_2022_est %>% distinct(iso_alpha3) %>% pull(iso_alpha3)
@@ -1925,6 +1925,7 @@ names(pathways_tmp) <- c("year", "iso_alpha3", "model_group", "diet_plan", "scen
 ```
 
 Merge the FAO-derived data with the empty pathways data frame.
+
 ```{r}
 feed_data_pathways <- feed_2014_2022_est_tmp %>% 
   full_join(pathways_tmp, by = c("year", "model_group", "tonnes_yr", "iso_alpha3", "diet_plan", "scenario"))
@@ -1933,6 +1934,7 @@ head(feed_data_pathways)
 ```
 
 And the same for `feed_targets`, the data frame for values at and above the target year.
+
 ```{r}
 years_tmp <- seq(netzero_target_year, 2080, by = 5)
 countries_tmp <-
@@ -1991,8 +1993,8 @@ feed_targets <- feed_proj %>%
 head(feed_targets)
 ```
 
-
 Confirm that all countries represented in `data_pathways` are represented in `targets`. For the spline interpolation to work, there must be tie points for all countries, diet_plans, and scenarios at 2022 and 2050.
+
 ```{r}
 data_countries <- feed_data_pathways %>% dplyr::distinct(iso_alpha3) %>% dplyr::pull(iso_alpha3)
 targ_countries <- feed_targets %>% dplyr::distinct(iso_alpha3) %>% dplyr::pull(iso_alpha3)
@@ -2007,6 +2009,7 @@ feed_targets_clean <- feed_targets %>%
 ```
 
 Merge into harmonized data frame.
+
 ```{r}
 
 harmonized_feed_data_targets <- feed_2014_2022_est_clean %>%
@@ -2015,12 +2018,13 @@ harmonized_feed_data_targets <- feed_2014_2022_est_clean %>%
 
 ```
 
-Interpolate transformation pathways between the FAO food balance data (and linearly interpolated values to 2022 based on the FAO data) and target year values using a spline with all values as tie-points.
+Interpolate shift pathways between the FAO food balance data (and linearly interpolated values to 2022 based on the FAO data) and target year values using a spline with all values as tie-points.
+
 ```{r}
 
 feed_pathways_tmp <- harmonized_feed_data_targets %>%
   group_by(model_group, scenario, diet_plan, iso_alpha3) %>%
-  mutate(tonnes_yr_interp = spline(
+  mutate(tonnes_yr_interp = stats::spline(
     x = year,
     y = tonnes_yr,
     xout = year,
@@ -2033,7 +2037,6 @@ feed_pathways <- feed_pathways_tmp %>%
   dplyr::rename(tonnes_yr = tonnes_yr_interp)
 
 ```
-
 
 In some cases, this method predicts negative demand values (e.g., Venezuela). In the VEN case, the initial decline in supply was so rapid, that the spline makes a practically unreasonable fit. The number of these unreasonable values amount to just 0.88% of the total number of values; but the number of their associated model_group, country, diet_plan and scenario combinations pathways amount to 8.5% of all possible combinations (hence pathways). In any case, their associated model_group, country, diet_plan and scenario combinations are thrown out of the data set.
 
@@ -2054,6 +2057,7 @@ feed_pathways_clean <- feed_pathways %>%
 
 ## Visualization
 
+Let's take a quick look at what cereals for food and feed will look like for all countries under SSP2.
 ```{r}
 ggplot(food_pathways_clean %>% 
          dplyr::filter(scenario == "SSP2", model_group == "cereals"), 
@@ -2084,6 +2088,8 @@ ggplot(feed_pathways_clean %>%
   facet_wrap(~diet_plan) 
 ```
 
+This looks reasonable.
+
 Combine food and feed pathways.
 
 ```{r}
@@ -2113,8 +2119,8 @@ food_feed_pathways_clean <- food_tmp %>%
 
 ```
 
-
 To visualise these data, I will aggregate food types into animal products, plant products and fish-seafood.
+
 ```{r}
 food_feed_pathways_agg <- food_feed_pathways_clean %>% 
   dplyr::mutate(food_group = ifelse(model_group %in% c("beef_lamb_pork", "chicken_poultry", "dairy", "eggs"), 
@@ -2135,6 +2141,7 @@ food_feed_pathways_agg <- food_feed_pathways_agg %>%
 
 ```
 
+Plot the combined global food and feed pathways would look like, with products categorised as animal, plant and fish & seafood products.
 ```{r}
 
 cols <-
@@ -2328,6 +2335,7 @@ cowplot::plot_grid(mitigate_arrow, p3, NA, adapt_arrow, ncol = 2, rel_widths = c
 # For different target years
 
 Set a target year
+
 ```{r}
 
 # Food_feed_pathways <-
@@ -2479,7 +2487,7 @@ for (year in seq(2045, 2065, by = 5)) {
   dplyr::summarise(tonnes_yr = sum(tonnes_yr, na.rm = FALSE), 
                    .groups = "drop")
   
-  # Interpolate transformation pathways between the FAO food balance data (and linearly interpolated values to 2022 based on the FAO data) and target year values using a spline with all values as tie-points.
+  # Interpolate shift pathways between the FAO food balance data (and linearly interpolated values to 2022 based on the FAO data) and target year values using a spline with all values as tie-points.
   # fn <- function(x, y) {
   #   spline(x, y)
   # }
@@ -2541,19 +2549,8 @@ for (year in seq(2045, 2065, by = 5)) {
 
 ```
 
-testing
+Can investigate whether this is working with a quick test.
 ```{r}
-ggplot(
-  food_feed_pathways %>% filter(
-    food_group == "animal products",
-    target_year == 2065, 
-    iso_alpha3 == "USA"
-  ),
-  aes(x = year)
-) +
-  geom_line(aes(y = kt_yr)) +
-  geom_line(aes(y = kt_yr_fit), colour = "blue") 
-
 ggplot(
   Food_feed_pathways %>% filter(
     iso_alpha3 == "USA",
@@ -2568,7 +2565,9 @@ ggplot(
   geom_line(aes(y = kt_yr_fit), colour = "blue") 
 ```
 
-Take first and second differences from pathways.
+# Pathway Rates of Change
+
+Now take first and second differences from pathways.
 ```{r}
 
 Food_feed_pathways_curves <- Food_feed_pathways %>% 
@@ -2587,23 +2586,20 @@ Food_feed_pathways_curves <- Food_feed_pathways %>%
 
 ```
 
-
+The `Food_feed_pathways_curves` df contains pathway ROCs, diff1, and dROCs, diff2 (pathway curvature).
 ```{r}
-
-Food_feed_pathways_curves %>% filter(!year %in% c(2023, 2024))
-
+# Food_feed_pathways_curves %>% filter(!year %in% c(2023, 2024))
 ```
-
 
 # Historical food balances
 
-From 
+From FAO Food Balance data sheets.
 ```{r}
 fb_hist_df <-
-  read_csv(
+  readr::read_csv(
     file = paste0(
       data_path,
-      "FoodBalanceSheetsHistoric_E_All_Data_(Normalized).csv"
+      "/FoodBalanceSheetsHistoric_E_All_Data_(Normalized).csv"
     ),
     col_types = cols(
       `Area Code` = col_double(),
@@ -2621,6 +2617,7 @@ fb_hist_df <-
   )
 ```
 
+Standardize the header names.
 ```{r}
 Fb_hist_df <- fb_hist_df %>% 
   dplyr::rename(area_code = `Area Code`, 
@@ -2635,8 +2632,7 @@ Fb_hist_df <- fb_hist_df %>%
   dplyr::select(area_code, area, item_code, item, element_code, element, year, unit, value)
 ```
 
-
-
+Map food model groups to the historical data.
 ```{r}
 food_hist_df <- Fb_hist_df %>%
   dplyr::filter(element_code %in% c(5142)) %>%
@@ -2681,22 +2677,13 @@ food_feed_hist_countries <- food_hist_countries %>%
 
 ```
 
-Take first and second differences. Second difference is equivalent to curvature.
+Take first and second differences of the (smoothed) historical data. (I am smoothing the data by taking 3 year rolling means.)
 ```{r}
-# food_curv <- food_hist_countries %>%
-#   # filter(area_code == 2, model_group == "cereals") %>%
-#   dplyr::group_by(area_code, area, model_group) %>%
-#   dplyr::arrange(year) %>%
-#   dplyr::mutate(kt_yr_smoothed = zoo::rollapply(kt_yr, 3, mean, fill = NA)) %>%
-#   dplyr::mutate(diff1 = kt_yr_smoothed - lag(kt_yr_smoothed, 1L),
-#                 diff2 = diff1 - lag(diff1, 1L)) %>%
-#   dplyr::ungroup() %>%
-#   tidyr::drop_na()
 
-food_feed_curv <- food_feed_hist_countries %>% 
+food_feed_curv <- food_feed_hist_countries %>%
   dplyr::group_by(area_code, area, food_group) %>%
-  dplyr::arrange(year) %>% 
-  dplyr::mutate(kt_yr_smoothed = zoo::rollapply(kt_yr, 3, mean, fill = NA)) %>% 
+  dplyr::arrange(year) %>%
+  dplyr::mutate(kt_yr_smoothed = zoo::rollapply(kt_yr, 3, mean, fill = NA)) %>%
   dplyr::mutate(diff1 = kt_yr_smoothed - lag(kt_yr_smoothed, 1L),
                 diff2 = diff1 - lag(diff1, 1L)) %>%
   dplyr::ungroup() %>%
@@ -2704,14 +2691,8 @@ food_feed_curv <- food_feed_hist_countries %>%
 
 ```
 
-Associate with subregions.
+Map these to geographic subregions (groupings of countries that follow FAO pattern, sometimes continental-scale, sometimes sub-continental, sometimes super-continental).
 ```{r}
-
-# food_curv_regions <- food_curv %>%
-#   dplyr::rename(fao_countrycode = area_code) %>%
-#   dplyr::select(-area) %>%
-#   dplyr::left_join(loc_map_reduced) %>%
-#   tidyr::drop_na()
 
 food_feed_curv_regions <- food_feed_curv %>% 
   dplyr::rename(fao_countrycode = area_code) %>% 
@@ -2720,7 +2701,6 @@ food_feed_curv_regions <- food_feed_curv %>%
   tidyr::drop_na()
 
 ```
-
 
 ```{r}
 p1 <- ggplot(food_feed_curv_regions,
@@ -2733,15 +2713,16 @@ p1 <- ggplot(food_feed_curv_regions,
         legend.title = element_blank()) +
   labs(
     title = "Historical crop production absolute acceleration (pathway curvature)",
-    subtitle = "Source: FAOSTAT",
+    subtitle = "Source: FAOSTAT (2022)",
     x = "year",
     y = "absolute curvature (kt/yr/yr)"
   )
 
 p1
 ```
+## Distributions
 
-NB I don't think it's setting the target year correctly
+We are now looking at how ROC and dROC distributions.
 ```{r}
 tmp_pathways <- Food_feed_pathways_curves %>% 
   dplyr::filter(diet_plan == "CNS-CFP", scenario == "SSP3") %>% 
@@ -2755,14 +2736,24 @@ ggplot(tmp_pathways,
        aes(x = diff1)) + 
   geom_density(aes(colour = as.factor(target_year), 
                    fill = as.factor(target_year)), 
-               alpha = 0.8) + 
+               alpha = 0.4) + 
   geom_density(data = tmp_fao, 
-               mapping = aes(x = diff1))
+               mapping = aes(x = diff1)) + 
+  theme_minimal() + 
+  theme(
+    legend.title = element_blank()
+  ) +
+  scale_x_log10(
+    breaks = scales::trans_breaks("log10", function(x)
+      10 ^ x),
+    labels = scales::trans_format("log10", scales::math_format(10 ^
+                                                                 .x))
+  )
 
 ```
 
-
 I want to ignore low-curvature densities, so cut at 1000 kt/yr.
+
 ```{r}
 dens <- food_feed_curv_regions %>% 
                   dplyr::select(subregionname, iso_alpha3, diff1, diff2) %>%
@@ -2771,8 +2762,8 @@ dens <- food_feed_curv_regions %>%
   tidyr::drop_na()
 ```
 
-
 Calculate kernel density for the FAO data curvature distributions.
+
 ```{r}
 regions <- food_feed_curv_regions %>% distinct(subregionname) %>% pull(subregionname)
 
@@ -2804,14 +2795,12 @@ Dens <- Dens %>%
 
 ```{r}
 set.seed(123)
+
+# Dens1 <- density(dens$diff2) # Dens_df <- data.frame(curv = Dens1$x, dens = Dens1$y) #`
 ```
 
-# ```{r}
-# Dens1 <- density(dens$diff2)
-# Dens_df <- data.frame(curv = Dens1$x, dens = Dens1$y)
-# ```
-
 Use the `ks` package.
+
 ```{r}
 
 dens_diff1 <- dens %>% 
@@ -2826,7 +2815,6 @@ diff2_kde <- ks::kde(dens_diff2) # second derivative (production accel.) kernel 
 
 ```
 
-
 ```{r}
 
 diff1_kde_df <-
@@ -2836,8 +2824,6 @@ diff2_kde_df <-
              density = diff2_kde$estimate)
 
 ```
-
-
 
 ```{r}
 
@@ -2859,6 +2845,12 @@ p2a <- ggplot(diff1_kde_df, aes(x = rate,
   ) + 
   theme(
     title = element_text(size = 9)
+  ) +
+  scale_x_log10(
+    breaks = scales::trans_breaks("log10", function(x)
+      10 ^ x),
+    labels = scales::trans_format("log10", scales::math_format(10 ^
+                                                                 .x))
   )
 
 p2b <- ggplot(diff2_kde_df, aes(x = curvature, 
@@ -2879,6 +2871,12 @@ p2b <- ggplot(diff2_kde_df, aes(x = curvature,
   ) + 
   theme(
     title = element_text(size = 9)
+  ) +
+  scale_x_log10(
+    breaks = scales::trans_breaks("log10", function(x)
+      10 ^ x),
+    labels = scales::trans_format("log10", scales::math_format(10 ^
+                                                                 .x))
   )
 
 plot_grid(p2a, p2b)
@@ -2891,109 +2889,109 @@ plot_grid(p2a, p2b)
 
 ```{r}
 
-library(fitdistrplus)
-
-tmp <- dens$diff1
-tmp <- tmp[tmp > 1]
-
-fit_gamma <- fitdistrplus::fitdist(as.vector(tmp), distr = "gamma", method = "mme")
-summary(fit_gamma)
-
-plot(fit_gamma)
+# library(fitdistrplus)
+# 
+# tmp <- dens$diff1
+# tmp <- tmp[tmp > 1]
+# 
+# fit_gamma <- fitdistrplus::fitdist(as.vector(tmp), distr = "gamma", method = "mme")
+# summary(fit_gamma)
+# 
+# plot(fit_gamma)
 
 ```
 
 Data
 
+<!-- Populations -->
 
-Populations
-```{r}
-ssp_path <- "/home/thomson/Data/SSPs/"
+<!-- ```{r} -->
+<!-- ssp_path <- "/home/thomson/Data/SSPs/" -->
 
-ssp_base <- read_csv(
-  file = paste0(ssp_path,
-                "SspDb_country_data_2013-06-12.csv"),
-  col_types = cols(
-    .default = col_logical(),
-    MODEL = col_character(),
-    SCENARIO = col_character(),
-    REGION = col_character(),
-    VARIABLE = col_character(),
-    UNIT = col_character(),
-    `2010` = col_double(),
-    `2015` = col_double(),
-    `2020` = col_double(),
-    `2025` = col_double(),
-    `2030` = col_double(),
-    `2035` = col_double(),
-    `2040` = col_double(),
-    `2045` = col_double(),
-    `2050` = col_double(),
-    `2055` = col_double(),
-    `2060` = col_double(),
-    `2065` = col_double(),
-    `2070` = col_double(),
-    `2075` = col_double(),
-    `2080` = col_double(),
-    `2085` = col_double(),
-    `2090` = col_double(),
-    `2095` = col_double(),
-    `2100` = col_double()
-  )
-)
-```
+<!-- ssp_base <- read_csv( -->
+<!--   file = paste0(ssp_path, -->
+<!--                 "SspDb_country_data_2013-06-12.csv"), -->
+<!--   col_types = cols( -->
+<!--     .default = col_logical(), -->
+<!--     MODEL = col_character(), -->
+<!--     SCENARIO = col_character(), -->
+<!--     REGION = col_character(), -->
+<!--     VARIABLE = col_character(), -->
+<!--     UNIT = col_character(), -->
+<!--     `2010` = col_double(), -->
+<!--     `2015` = col_double(), -->
+<!--     `2020` = col_double(), -->
+<!--     `2025` = col_double(), -->
+<!--     `2030` = col_double(), -->
+<!--     `2035` = col_double(), -->
+<!--     `2040` = col_double(), -->
+<!--     `2045` = col_double(), -->
+<!--     `2050` = col_double(), -->
+<!--     `2055` = col_double(), -->
+<!--     `2060` = col_double(), -->
+<!--     `2065` = col_double(), -->
+<!--     `2070` = col_double(), -->
+<!--     `2075` = col_double(), -->
+<!--     `2080` = col_double(), -->
+<!--     `2085` = col_double(), -->
+<!--     `2090` = col_double(), -->
+<!--     `2095` = col_double(), -->
+<!--     `2100` = col_double() -->
+<!--   ) -->
+<!-- ) -->
+<!-- ``` -->
 
-```{r}
-pop_proj <- ssp_base %>%
-  dplyr::filter(VARIABLE == "Population") %>%
-  dplyr::select(-c('1950':'2005'),-c('2105':'2150')) %>%
-  tidyr::pivot_longer(
-    .,
-    cols = c('2010':'2100'),
-    names_to = "year",
-    values_to = "millions"
-  ) %>%
-  tidyr::separate(.,
-                  SCENARIO,
-                  into = c("scenario", "na1", "na2"),
-                  sep = "_") %>% 
-  dplyr::mutate(scenario = ifelse(scenario == "SSP4d", 
-                                  "SSP4", 
-                                  scenario), 
-                year = as.numeric(year)) %>% 
-  dplyr::rename(iso_alpha3 = REGION) %>% 
-  dplyr::select(-na1, -na2, -VARIABLE, -UNIT, -MODEL)
-```
+<!-- ```{r} -->
+<!-- pop_proj <- ssp_base %>% -->
+<!--   dplyr::filter(VARIABLE == "Population") %>% -->
+<!--   dplyr::select(-c('1950':'2005'),-c('2105':'2150')) %>% -->
+<!--   tidyr::pivot_longer( -->
+<!--     ., -->
+<!--     cols = c('2010':'2100'), -->
+<!--     names_to = "year", -->
+<!--     values_to = "millions" -->
+<!--   ) %>% -->
+<!--   tidyr::separate(., -->
+<!--                   SCENARIO, -->
+<!--                   into = c("scenario", "na1", "na2"), -->
+<!--                   sep = "_") %>%  -->
+<!--   dplyr::mutate(scenario = ifelse(scenario == "SSP4d",  -->
+<!--                                   "SSP4",  -->
+<!--                                   scenario),  -->
+<!--                 year = as.numeric(year)) %>%  -->
+<!--   dplyr::rename(iso_alpha3 = REGION) %>%  -->
+<!--   dplyr::select(-na1, -na2, -VARIABLE, -UNIT, -MODEL) -->
+<!-- ``` -->
 
-Interpolate populations to fill in data for missing years.
-```{r}
-library(splines)
-library(purrr)
+<!-- Interpolate populations to fill in data for missing years. -->
 
-spline_model_fit <- function(x){
-  lmod <- lm(millions ~ bs(year, knots = seq(2010, 2100, by = 5), degree = 1), data = x)
-  lmod_pred <- predict(lmod, newdata = data.frame(year = seq(2010, 2100, by = 1)))
-  data.frame(year = seq(2010, 2100, by = 1), millions = lmod_pred)
-}
+<!-- ```{r} -->
+<!-- library(splines) -->
+<!-- library(purrr) -->
 
-pop_proj_interp <- pop_proj %>% 
-  dplyr::group_by(scenario, iso_alpha3) %>% 
-  tidyr::nest() %>% 
-  dplyr::mutate(lmods_interp = map(data, spline_model_fit)) %>% 
-  tidyr::unnest(lmods_interp) %>% 
-  dplyr::select(-data) %>% 
-  dplyr::ungroup()
+<!-- spline_model_fit <- function(x){ -->
+<!--   lmod <- lm(millions ~ bs(year, knots = seq(2010, 2100, by = 5), degree = 1), data = x) -->
+<!--   lmod_pred <- predict(lmod, newdata = data.frame(year = seq(2010, 2100, by = 1))) -->
+<!--   data.frame(year = seq(2010, 2100, by = 1), millions = lmod_pred) -->
+<!-- } -->
 
-```
+<!-- pop_proj_interp <- pop_proj %>%  -->
+<!--   dplyr::group_by(scenario, iso_alpha3) %>%  -->
+<!--   tidyr::nest() %>%  -->
+<!--   dplyr::mutate(lmods_interp = map(data, spline_model_fit)) %>%  -->
+<!--   tidyr::unnest(lmods_interp) %>%  -->
+<!--   dplyr::select(-data) %>%  -->
+<!--   dplyr::ungroup() -->
 
+<!-- ``` -->
 
-```{r}
-pop_proj_regions <- pop_proj_interp %>% 
-  dplyr::left_join(loc_map_reduced)
-```
-
+<!-- ```{r} -->
+<!-- pop_proj_regions <- pop_proj_interp %>%  -->
+<!--   dplyr::left_join(loc_map_reduced) -->
+<!-- ``` -->
 
 Pathways and FAO historical data.
+
 ```{r}
 Food_feed_pathways_curves_regions <- Food_feed_pathways_curves %>% 
   dplyr::full_join(loc_map_reduced, by = "iso_alpha3") %>% 
@@ -3003,59 +3001,60 @@ Food_feed_curv_regions <- food_feed_curv_regions %>%
                 scenario = "FAO data")
 ```
 
-Include population data for projections
-```{r}
-Food_feed_pathways_curves_regions_percap <- Food_feed_pathways_curves_regions %>%  
-  dplyr::left_join(pop_proj_regions) %>% 
-  dplyr::mutate(kg_yr_cap = kt_yr/millions) %>% 
-  dplyr::group_by(food_group, iso_alpha3, diet_plan, scenario, target_year) %>% 
-  dplyr::mutate(diff1_cap = kg_yr_cap - lag(kg_yr_cap, n = 1L, default = NA), 
-                diff2_cap = diff1_cap - lag(diff1_cap, n = 1L, default = NA)) %>% 
-  dplyr::ungroup()
+<!-- Include population data for projections -->
 
-```
+<!-- ```{r} -->
+<!-- Food_feed_pathways_curves_regions_percap <- Food_feed_pathways_curves_regions %>%   -->
+<!--   dplyr::left_join(pop_proj_regions) %>%  -->
+<!--   dplyr::mutate(kg_yr_cap = kt_yr/millions) %>%  -->
+<!--   dplyr::group_by(food_group, iso_alpha3, diet_plan, scenario, target_year) %>%  -->
+<!--   dplyr::mutate(diff1_cap = kg_yr_cap - lag(kg_yr_cap, n = 1L, default = NA),  -->
+<!--                 diff2_cap = diff1_cap - lag(diff1_cap, n = 1L, default = NA)) %>%  -->
+<!--   dplyr::ungroup() -->
 
-Need historical population data.
-```{r}
+<!-- ``` -->
 
-pop_hist <- Fb_hist_df %>% 
-  dplyr::filter(element_code == 511) %>% 
-  dplyr::mutate(millions = 1e-3*value) %>% 
-  dplyr::select(area_code, year, millions) %>% 
-  dplyr::rename(
-    fao_countrycode = area_code
-  )
+<!-- Need historical population data. -->
 
-```
+<!-- ```{r} -->
 
+<!-- pop_hist <- Fb_hist_df %>%  -->
+<!--   dplyr::filter(element_code == 511) %>%  -->
+<!--   dplyr::mutate(millions = 1e-3*value) %>%  -->
+<!--   dplyr::select(area_code, year, millions) %>%  -->
+<!--   dplyr::rename( -->
+<!--     fao_countrycode = area_code -->
+<!--   ) -->
 
-```{r}
-Food_feed_curv_regions_percap <- Food_feed_curv_regions %>%  
-  dplyr::left_join(pop_hist) %>% 
-  dplyr::mutate(kg_yr_cap = kt_yr_smoothed/millions) %>% 
-  dplyr::group_by(food_group, iso_alpha3) %>% 
-  dplyr::mutate(diff1_cap = kg_yr_cap - lag(kg_yr_cap, n = 1L, default = NA), 
-                diff2_cap = diff1_cap - lag(diff1_cap, n = 1L, default = NA)) %>% 
-  dplyr::ungroup()
-```
+<!-- ``` -->
 
-```{r}
-tmp_fao <- Food_feed_curv_regions %>% 
-  dplyr::filter(diff1 > 2500) %>% 
-  pull(diff1)
+<!-- ```{r} -->
+<!-- Food_feed_curv_regions_percap <- Food_feed_curv_regions %>%   -->
+<!--   dplyr::left_join(pop_hist) %>%  -->
+<!--   dplyr::mutate(kg_yr_cap = kt_yr_smoothed/millions) %>%  -->
+<!--   dplyr::group_by(food_group, iso_alpha3) %>%  -->
+<!--   dplyr::mutate(diff1_cap = kg_yr_cap - lag(kg_yr_cap, n = 1L, default = NA),  -->
+<!--                 diff2_cap = diff1_cap - lag(diff1_cap, n = 1L, default = NA)) %>%  -->
+<!--   dplyr::ungroup() -->
+<!-- ``` -->
 
-tmp_2055 <- Food_feed_pathways_curves_regions %>% 
-  dplyr::filter(diff1 > 2500) %>% 
-  dplyr::filter(diet_plan == "ELA-PHD", target_year == 2055) %>% 
-  pull(diff1) %>% na.omit()
-```
+<!-- ```{r} -->
+<!-- tmp_fao <- Food_feed_curv_regions %>%  -->
+<!--   dplyr::filter(diff1 > 2500) %>%  -->
+<!--   pull(diff1) -->
 
-```{r}
-ks.test(tmp_2055, tmp_fao)
-```
+<!-- tmp_2055 <- Food_feed_pathways_curves_regions %>%  -->
+<!--   dplyr::filter(diff1 > 2500) %>%  -->
+<!--   dplyr::filter(diet_plan == "ELA-PHD", target_year == 2055) %>%  -->
+<!--   pull(diff1) %>% na.omit() -->
+<!-- ``` -->
 
+<!-- ```{r} -->
+<!-- ks.test(tmp_2055, tmp_fao) -->
+<!-- ``` -->
 
 Annual rate of change of pathway curves
+
 ```{r}
 
 threshold_rate = 2500
@@ -3094,12 +3093,11 @@ rate_neg_fao_data <- p_rate_neg_data$data[[1]] %>%
 
 ```
 
-
 ```{r}
 
 scenar = "SSP3"
 
-rate_palette <- brewer.pal(name="Blues", n=9)[5:9]
+rate_palette <- RColorBrewer::brewer.pal(name="Blues", n=9)[5:9]
 
 p_rate_pos <- ggplot(
   data = Food_feed_pathways_curves %>%
@@ -3236,8 +3234,6 @@ rate_neg_pathways <- p_rate_neg_pathways$data[[1]] %>%
 
 ```
 
-
-
 ```{r}
 ggplot(
   data = rate_pos_pathways,
@@ -3274,28 +3270,35 @@ ggplot(
     x = "ROC (kt/yr)", 
     y = "density"
   ) + 
-  coord_cartesian(xlim = c(0, 3.5e4)) +
+  # coord_cartesian(xlim = c(0, 3.5e4)) +
+  scale_x_log10(
+    breaks = scales::trans_breaks("log10", function(x)
+      10 ^ x),
+    labels = scales::trans_format("log10", scales::math_format(10 ^
+                                                                 .x))
+  ) +
   facet_wrap(~ diet_plan)
 ```
+
 ```{r}
 
-tmp_fao <- rate_pos_fao_data %>% pull(density)
-tmp_2045 <-
-  rate_pos_pathways %>% filter(diet_plan == "ELA-PHD", target_year == 2045) %>% pull(density)
-tmp_2050 <-
-  rate_pos_pathways %>% filter(diet_plan == "ELA-PHD", target_year == 2050) %>% pull(density)
-tmp_2055 <-
-  rate_pos_pathways %>% filter(diet_plan == "ELA-PHD", target_year == 2055) %>% pull(density)
-tmp_2060 <-
-  rate_pos_pathways %>% filter(diet_plan == "ELA-PHD", target_year == 2060) %>% pull(density)
-tmp_2065 <-
-  rate_pos_pathways %>% filter(diet_plan == "ELA-PHD", target_year == 2065) %>% pull(density)
-
-
-fit_gamma <- fitdistrplus::fitdist(as.vector(tmp), distr = "gamma", method = "mme")
-summary(fit_gamma)
-
-plot(fit_gamma)[1]
+# tmp_fao <- rate_pos_fao_data %>% pull(density)
+# tmp_2045 <-
+#   rate_pos_pathways %>% filter(diet_plan == "ELA-PHD", target_year == 2045) %>% pull(density)
+# tmp_2050 <-
+#   rate_pos_pathways %>% filter(diet_plan == "ELA-PHD", target_year == 2050) %>% pull(density)
+# tmp_2055 <-
+#   rate_pos_pathways %>% filter(diet_plan == "ELA-PHD", target_year == 2055) %>% pull(density)
+# tmp_2060 <-
+#   rate_pos_pathways %>% filter(diet_plan == "ELA-PHD", target_year == 2060) %>% pull(density)
+# tmp_2065 <-
+#   rate_pos_pathways %>% filter(diet_plan == "ELA-PHD", target_year == 2065) %>% pull(density)
+# 
+# 
+# fit_gamma <- fitdistrplus::fitdist(as.vector(tmp), distr = "gamma", method = "mme")
+# summary(fit_gamma)
+# 
+# plot(fit_gamma)[1]
 ```
 
 Use normalized histograms to do this test.
@@ -3314,6 +3317,7 @@ diff2_hist <- Food_feed_curv_regions %>%
 ```
 
 Histogram these.
+
 ```{r}
 
 p_fao_hist_diff1 <- ggplot(data.frame(values = diff1_hist), 
@@ -3344,8 +3348,6 @@ fao_hist_diff2_df <- fao_hist_data_diff2 %>%
 
 ```
 
-
-
 ```{r}
 
 test <- expand.grid(
@@ -3361,8 +3363,8 @@ test <- data.frame(
 
 ```
 
-
 First differences.
+
 ```{r}
 # p_path_ls <- list()
 Path_diff1_df <- data.frame()
@@ -3406,7 +3408,6 @@ for(scen in c("SSP1", "SSP2", "SSP3", "SSP4", "SSP5")) {
 
 
 ```
-
 
 Second differences.
 
@@ -3454,11 +3455,10 @@ for(scen in c("SSP1", "SSP2", "SSP3", "SSP4", "SSP5")) {
 
 ```
 
-
-
 Normalise for area under histograms. I.e., find densities for discrete x-values.
 
 All values
+
 ```{r}
 # first differences
 fao_hist_diff1_norm_df <- fao_hist_diff1_df %>% 
@@ -3485,6 +3485,16 @@ Path_diff2_norm_df <- Path_diff2_df %>%
   dplyr::mutate(counts_norm = count/sum(count), 
          cdf = cumsum(counts_norm)) %>% 
   dplyr::ungroup()
+```
+
+```{r}
+Path_diff1_norm_df <- Path_diff1_norm_df %>% 
+  dplyr::mutate(diet_plan_f = ifelse(diet_plan == "ELA-PHD", 
+                                     "ELA", 
+                                     ifelse(diet_plan == "CNS-CFP", 
+                                            "CNS", 
+                                            "USDA")))
+Path_diff1_norm_df$diet_plan_f <- factor(Path_diff1_norm_df$diet_plan_f, levels = c("ELA", "CNS", "USDA"))
 ```
 
 
@@ -3589,12 +3599,12 @@ p_diff1_cdfresiduals <- ggplot(test2 %>%
 
 ```
 
-
 ```{r}
 cowplot::plot_grid(p_diff1_pdf, p_diff1_cdf, p_diff1_cdfresiduals, p_legend, ncol = 1, rel_heights = c(0.85, 0.8, 0.8, 0.2))
 ```
 
 Calculate differences from the cdf. First interpolate all missing values, then take differences.
+
 ```{r}
 
 test1 <- fao_hist_diff1_norm_df %>% 
@@ -3685,7 +3695,6 @@ Path_diff1_norm_df$diet_plan_f <- factor(Path_diff1_norm_df$diet_plan, levels = 
 
 
 ```
-
 
 ```{r}
 fao_hist_diff1_pos <- fao_hist_diff1_norm_df %>% 
@@ -3792,12 +3801,19 @@ p_diff1_neg <- ggplot(path_diff1_neg,
   scale_colour_manual(values = rate_palette) + 
   scale_y_continuous(labels = scales::label_number(accuracy = 0.01))  + 
   facet_wrap(~ diet_plan_f)
-
-cowplot::plot_grid(p_legend, p_diff1_pos,p_diff1_neg, ncol = 1, rel_heights = c(0.1, 0.8, 0.85))
-
 ```
 
 
+```{r}
+grDevices::jpeg(filename = "Plots/roc_vals.jpg", 
+               width = 500, 
+               height = 300, 
+               units = "px", 
+               quality = 1)
+cowplot::plot_grid(p_legend, p_diff1_pos,p_diff1_neg, ncol = 1, rel_heights = c(0.1, 0.8, 0.85))
+
+dev.off()
+```
 
 ```{r}
 scen = "SSP3"
@@ -3899,11 +3915,9 @@ p_diff2_cdfresiduals <- ggplot(test2 %>%
 
 ```
 
-
 ```{r}
 cowplot::plot_grid(p_diff2_pdf, p_diff2_cdfresiduals, p_legend, ncol = 1, rel_heights = c(0.85, 0.8, 0.2))
 ```
-
 
 ```{r}
 
@@ -4060,9 +4074,8 @@ ggplot(cdf_norm,
 
 ```
 
-
-
 Find positive and negative rates and mean values.
+
 ```{r}
 
 
@@ -4093,7 +4106,6 @@ path_residue_df <- path_means_df %>%
 
 ```
 
-
 ```{r}
 ggplot(path_residue_df %>% 
          filter(sign == "pos", 
@@ -4112,11 +4124,8 @@ ggplot(path_residue_df %>%
   facet_wrap(~ diet_plan)
 ```
 
-
-
-
-
 Annual curvature (acceleration) of pathway curves
+
 ```{r}
 
 threshold_curv = 500
@@ -4154,7 +4163,6 @@ curv_neg_fao_data <- p_curv_neg_data$data[[1]] %>%
   dplyr::select(type, diff2, density)
 
 ```
-
 
 ```{r}
 
@@ -4252,7 +4260,6 @@ p_curv_neg <- ggplot(
 
 ```
 
-
 ```{r}
 cowplot::plot_grid(
   p_rate_legend,
@@ -4273,6 +4280,7 @@ cowplot::plot_grid(
 ```
 
 test
+
 ```{r}
 
 diff1_tmp <- food_feed_curv %>%
@@ -4309,7 +4317,6 @@ readr::write_csv(Food_feed_pathways_curves, file = "~/Data/food_feed_pathways.cs
 readr::write_csv(Food_feed_curv_regions, file = "~/Data/food_feed_fao_historical.csv")
 
 ```
-
 
 ```{r}
 #find kdes
@@ -4365,7 +4372,6 @@ for (scenar in c("SSP1", "SSP2", "SSP3", "SSP4", "SSP5")) {
 
 ```
 
-
 ```{r}
 
 ggplot(kde_curv_df %>% 
@@ -4377,8 +4383,6 @@ ggplot(kde_curv_df %>%
                         y = diff2_dens)) 
 
 ```
-
-
 
 ```{r}
 tmp <- Food_feed_pathways_curves %>% 
@@ -4404,8 +4408,8 @@ plot(kde_df, type = "l")
 sum(kde_df$y)
 ```
 
-
 Pull data from these and other (non-visualised) density plots to determine residues over historical densities.
+
 ```{r}
 
 # threshold_rate <- 2500
@@ -4632,6 +4636,7 @@ for (scenar in c("SSP1", "SSP2", "SSP3", "SSP4", "SSP5")) {
 ```
 
 Merge with FAO data
+
 ```{r}
 threshold_rate = 2000
 threshold_curv = 500
@@ -4703,7 +4708,6 @@ curv_neg_fao_data <- p_curv_neg_data$data[[1]] %>%
 
 ```
 
-
 ```{r}
 # positive ROC and curvatures for FAO data
 Pos_data <- rate_pos_fao_data %>% 
@@ -4748,8 +4752,8 @@ Neg_data <- rate_neg_fao_data %>%
 
 ```
 
-
 Find the residues and cumulative area of residues (above the FAO data density curve).
+
 ```{r}
 #positive
 pos_fao_data_rate <- Pos_data %>% 
@@ -4793,9 +4797,8 @@ neg_fao_data_curv <- Neg_data %>%
  
 ```
 
-
-
 For the pathways.
+
 ```{r}
 #positive
 pos_path_rate <- Pos_path %>% 
@@ -4843,8 +4846,8 @@ neg_path_curv <- Neg_path %>%
 
 ```
 
-
 Now find residues.
+
 ```{r}
 #positive
 pos_rate_residues <- pos_path_rate %>% 
@@ -4897,6 +4900,7 @@ neg_curv_residues <- neg_path_curv %>%
 ```
 
 Find residue sums (areas above the FAO density curves).
+
 ```{r}
 #positive
 pos_rate_res <- pos_rate_residues %>% 
@@ -4921,6 +4925,7 @@ neg_curv_res <- neg_curv_residues %>%
 ```
 
 Find the range by SSP to give error bars for residue areas.
+
 ```{r}
 #positive
 Pos_rate_res <- pos_rate_res %>% 
@@ -4959,8 +4964,6 @@ Neg_curv_res <- neg_curv_res %>%
   )
 
 ```
-
-
 
 ```{r}
 p_pos_rate_res <- ggplot(Pos_rate_res, 
@@ -5038,8 +5041,8 @@ cowplot::plot_grid(p_pos_curv_res, p_neg_curv_res, ncol = 1)
 
 ```
 
-
 Projections
+
 ```{r}
 # food_pathways_combined <- food_pathways_2045 %>% 
 #   dplyr::bind_cols(target_year = 2045) %>% 
@@ -5083,7 +5086,6 @@ food_pathways_curves_regions <- food_pathways_curves %>%
 ```{r}
 library(RColorBrewer)
 ```
-
 
 ```{r}
 threshold_curv = 600
@@ -5264,6 +5266,7 @@ cowplot::plot_grid(p_rate_legend, p_rate_pos, p_rate_neg, nrow = 3, rel_heights 
 ```
 
 Curvature data
+
 ```{r}
 
 curv_palette_year_map <- data.frame(
@@ -5327,6 +5330,7 @@ curv_neg_surplus_densities <- curv_neg_fao_data %>%
 ```
 
 Check that areas are normalised to 0.
+
 ```{r, echo = FALSE}
 test <- curv_pos_surplus_densities %>% 
   tidyr::drop_na() %>% 
@@ -5336,9 +5340,11 @@ test <- curv_pos_surplus_densities %>%
 
 #test
 ```
+
 Checks out.
 
-Pathway residues: the 
+Pathway residues: the
+
 ```{r}
 pos_residues <- curv_pos_surplus_densities %>% 
   dplyr::filter(surplus_density >= 0) %>% 
@@ -5418,7 +5424,6 @@ cowplot::plot_grid(
 
 ```
 
-
 ```{r}
 
 p_curv_pos_exceedance <- ggplot(curv_pos_surplus_densities,
@@ -5481,6 +5486,7 @@ cowplot::plot_grid(
 ```
 
 Rate data
+
 ```{r}
 
 rate_palette_year_map <- data.frame(
@@ -5601,5 +5607,3 @@ cowplot::plot_grid(
 )
 
 ```
-
-
