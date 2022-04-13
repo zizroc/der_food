@@ -16,6 +16,9 @@ library(purrr)
 library(ggplot2)
 library(cowplot)
 library(zoo)
+library(scales)
+library(readr)
+library(RColorBrewer)
 ```
 
 # Dietary Shift Pathways
