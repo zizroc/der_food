@@ -2323,6 +2323,7 @@ p3_ssp5 <- ggplot(food_feed_pathways_agg %>%
 
 ```
 
+
 ```{r}
 pa <- plot_grid(p3_ssp5, p3_ssp1, ncol = 1)
 pb <- plot_grid(p3_legend_only, p3_ssp2, NA, ncol = 1, rel_heights = c(0.5, 1, 0.5))
@@ -2332,6 +2333,13 @@ p3 <- cowplot::plot_grid(pa, pb, pc, ncol = 3)
 
 cowplot::plot_grid(mitigate_arrow, p3, NA, adapt_arrow, ncol = 2, rel_widths = c(0.1, 0.9), rel_heights = c(0.9, 0.1))
 
+grDevices::jpeg(filename = "Plots/figure_5.jpg", 
+               width = 750, 
+               height = 500, 
+               units = "px", 
+               quality = 1)
+cowplot::plot_grid(mitigate_arrow, p3, NA, adapt_arrow, ncol = 2, rel_widths = c(0.1, 0.9), rel_heights = c(0.9, 0.1))
+dev.off()
 
 ```
 
@@ -2725,25 +2733,84 @@ p1
 ```
 ## Distributions
 
-We are now looking at how ROC and dROC distributions.
+Find out how ROC distributions change globally, for all food types, scenarios, target years, and countries, as a function of diet plan.
+
 ```{r}
-tmp_pathways <- Food_feed_pathways_curves %>% 
-  dplyr::filter(diet_plan == "CNS-CFP", scenario == "SSP3") %>% 
-  dplyr::filter(diff1 > 2500) %>% 
-  dplyr::select(-kt_yr)
+hist_density_averages <- Food_feed_curv_regions %>% 
+  dplyr::select(-kt_yr, -diff2) %>% 
+  dplyr::mutate(roc_sign = ifelse(diff1 > 0, 
+                                  "pos", 
+                                  ifelse(diff1 < 0, 
+                                         "neg", 
+                                         NA))) %>% 
+  tidyr::drop_na() %>% 
+  dplyr::group_by(food_group, roc_sign) %>% 
+  dplyr::summarise(diff1_ave = mean(diff1, na.rm = TRUE), 
+                   .groups = "drop")
 
-tmp_fao <- food_feed_curv %>% 
-  dplyr::filter(diff1 > 2500)
+pathway_density_averages <- Food_feed_pathways_curves %>% 
+  dplyr::select(-kt_yr, -diff2) %>% 
+  dplyr::mutate(roc_sign = ifelse(diff1 > 0, 
+                                  "pos", 
+                                  ifelse(diff1 < 0, 
+                                         "neg", 
+                                         NA))) %>% 
+  tidyr::drop_na() %>% 
+  dplyr::group_by(diet_plan, food_group, scenario, target_year, roc_sign) %>% 
+  dplyr::summarise(diff1_ave = mean(diff1, na.rm = TRUE), 
+                   .groups = "drop") 
 
-ggplot(tmp_pathways, 
-       aes(x = diff1)) + 
-  geom_density(aes(colour = as.factor(target_year), 
-                   fill = as.factor(target_year)), 
-               alpha = 0.4) + 
-  geom_density(data = tmp_fao, 
-               mapping = aes(x = diff1)) + 
-  theme_minimal() + 
+pathway_density_ensemble_means <- pathway_density_averages %>% 
+  dplyr::group_by(food_group, roc_sign) %>% 
+  dplyr::summarise(diff1_em = mean(diff1_ave, na.rm = TRUE, 
+                                   .groups = "drop"))
+
+```
+
+
+```{r}
+cols <-
+  c(
+    "animal products" = "#F17EB8",
+    "fish & seafood" = "#489ED3",
+    "plant products" = "#EEAF35"
+  )
+
+p2_pos <- ggplot(Food_feed_pathways_curves %>% 
+         dplyr::filter(diff1 > 0), 
+       mapping = aes(x = diff1)) + 
+  geom_density(mapping = aes(fill = food_group), 
+               alpha = 0.4, 
+               colour = NA) + 
+  geom_density(data = Food_feed_curv_regions %>% 
+         dplyr::filter(diff1 > 0), 
+               mapping = aes(x = diff1), 
+               fill = NA, 
+         inherit.aes = FALSE) + 
+  geom_vline(data = pathway_density_averages %>% 
+               dplyr::filter(roc_sign == "pos"), 
+             mapping = aes(xintercept = diff1_ave, 
+                 colour = food_group), 
+             linetype = 1, 
+             alpha = 0.1) + 
+  geom_vline(data = hist_density_averages %>% 
+               dplyr::filter(roc_sign == "pos"), 
+             mapping = aes(xintercept = diff1_ave), 
+             linetype = 2) + 
+   geom_vline(data = pathway_density_ensemble_means %>% 
+               dplyr::filter(roc_sign == "pos"), 
+             mapping = aes(xintercept = diff1_em), 
+                 colour = "blue", 
+             linetype = 4) + 
+  scale_fill_manual(
+    values = cols
+  ) +
+  scale_colour_manual(
+    values = cols
+  ) +
+  theme_bw() + 
   theme(
+    legend.position = "top", 
     legend.title = element_blank()
   ) +
   scale_x_log10(
@@ -2751,247 +2818,84 @@ ggplot(tmp_pathways,
       10 ^ x),
     labels = scales::trans_format("log10", scales::math_format(10 ^
                                                                  .x))
+  ) + 
+  labs(
+    title = "Positive ROC values", 
+    x = "ROC (kt/yr)", 
+    tag = "A"
+  ) + 
+  coord_cartesian(xlim = c(1e-2, 1e4)) + 
+  facet_wrap(~food_group)
+
+p2_leg <- cowplot::get_legend(p2_pos) 
+
+p2_pos <- p2_pos + 
+  theme(
+    legend.position = "none"
   )
 
-```
-
-I want to ignore low-curvature densities, so cut at 1000 kt/yr.
-
-```{r}
-dens <- food_feed_curv_regions %>% 
-                  dplyr::select(subregionname, iso_alpha3, diff1, diff2) %>%
-                  dplyr::mutate(diff1 = abs(diff1), 
-                                diff2 = abs(diff2)) %>% 
-  tidyr::drop_na()
-```
-
-Calculate kernel density for the FAO data curvature distributions.
-
-```{r}
-regions <- food_feed_curv_regions %>% distinct(subregionname) %>% pull(subregionname)
-
-Dens <- data.frame(curv = NA,
-                  dens = NA,
-                  subreg = NA)
-for (region in regions) {
-  tmp <- dens %>%
-    dplyr::filter(subregionname == region) %>%
-    dplyr::pull(diff2)
-  if (length(tmp) > 0) {
-    tmp_den <- density(tmp)
-    den <- data.frame(curv = tmp_den$x,
-                      dens = tmp_den$y,
-                      subreg = region)
-  } else {
-    den <- data.frame(curv = 0,
-                      dens = 0,
-                      subreg = region)
-  }
-  Dens <- Dens %>%
-    dplyr::bind_rows(den)
-}
-
-Dens <- Dens %>% 
-  tidyr::drop_na()
-
-```
-
-```{r}
-set.seed(123)
-
-# Dens1 <- density(dens$diff2) # Dens_df <- data.frame(curv = Dens1$x, dens = Dens1$y) #`
-```
-
-Use the `ks` package.
-
-```{r}
-
-dens_diff1 <- dens %>% 
-  dplyr::filter(diff1 > 2500) %>% 
-  dplyr::pull(diff1)
-dens_diff2 <- dens %>% 
-  dplyr::filter(diff2 > 900) %>% 
-  dplyr::pull(diff2)
-
-diff1_kde <- ks::kde(dens_diff1) # first derivative (production rate) kernel densities
-diff2_kde <- ks::kde(dens_diff2) # second derivative (production accel.) kernel densities
-
-```
-
-```{r}
-
-diff1_kde_df <-
-  data.frame(rate = diff1_kde$eval.points, density = diff1_kde$estimate)
-diff2_kde_df <-
-  data.frame(curvature = diff2_kde$eval.points,
-             density = diff2_kde$estimate)
-
-```
-
-```{r}
-
-p2a <- ggplot(diff1_kde_df, aes(x = rate, 
-                 y = density)) + 
-  geom_hline(yintercept = 0, alpha = 0.8) +
-  geom_vline(xintercept = 2500,
-             alpha = 0.8,
-             colour = "red", 
-             linetype = 2)  + 
-  geom_area(alpha = 0.5) + 
-  scale_y_continuous(trans = "sqrt") + 
-  theme_minimal() + 
-  labs(
-    title = "Historical crop production rate KDE", 
-    subtitle = "Data: FAOSTAT", 
-    x = "abolute rate (kt/yr)", 
-       y = "kernel density"
-  ) + 
-  theme(
-    title = element_text(size = 9)
+p2_neg <- ggplot(Food_feed_pathways_curves %>% 
+         dplyr::filter(diff1 < 0), 
+       aes(x = abs(diff1))) + 
+  geom_density(aes(fill = food_group), 
+               alpha = 0.4, 
+               colour = NA) + 
+  geom_density(data = Food_feed_curv_regions %>% 
+         dplyr::filter(diff1 < 0), 
+               aes(x = abs(diff1)), 
+               fill = NA) + 
+  geom_vline(data = pathway_density_averages %>% 
+               dplyr::filter(roc_sign == "neg"), 
+             aes(xintercept = abs(diff1_ave), 
+                 colour = food_group), 
+             linetype = 1, 
+             alpha = 0.1) + 
+  geom_vline(data = hist_density_averages %>% 
+               dplyr::filter(roc_sign == "neg"), 
+             aes(xintercept = abs(diff1_ave)), 
+             linetype = 2) + 
+   geom_vline(data = pathway_density_ensemble_means %>% 
+               dplyr::filter(roc_sign == "neg"), 
+             aes(xintercept = abs(diff1_em)), 
+                 colour = "blue", 
+             linetype = 4) + 
+  scale_fill_manual(
+    values = cols
   ) +
+  scale_colour_manual(
+    values = cols
+  ) +
+  theme_bw() + 
+  theme(
+    legend.position = "none"
+  ) + 
   scale_x_log10(
     breaks = scales::trans_breaks("log10", function(x)
       10 ^ x),
-    labels = scales::trans_format("log10", scales::math_format(10 ^
+    labels = scales::trans_format("log10", scales::math_format(-10 ^
                                                                  .x))
-  )
-
-p2b <- ggplot(diff2_kde_df, aes(x = curvature, 
-                 y = density)) + 
-  geom_hline(yintercept = 0, alpha = 0.8) +
-  geom_vline(xintercept = 900,
-             alpha = 0.8,
-             colour = "red", 
-             linetype = 2)  + 
-  geom_area(alpha = 0.5) + 
-  scale_y_continuous(trans = "sqrt") + 
-  theme_minimal() + 
-  labs(
-    title = "Historical crop production curvature KDE", 
-    subtitle = "Data: FAOSTAT", 
-    x = "abolute curvature (kt/yr/yr)", 
-       y = "kernel density"
   ) + 
-  theme(
-    title = element_text(size = 9)
-  ) +
-  scale_x_log10(
-    breaks = scales::trans_breaks("log10", function(x)
-      10 ^ x),
-    labels = scales::trans_format("log10", scales::math_format(10 ^
-                                                                 .x))
-  )
+  coord_cartesian(xlim = c(1e-2, 1e4)) + 
+  labs(
+    title = "Negative ROC values", 
+    x = "ROC (kt/yr)", 
+    tag = "B"
+  ) + 
+  facet_wrap(~food_group)
 
-plot_grid(p2a, p2b)
 
-# ggplot(Dens, aes(x = curv, 
-#                  y = dens)) + 
-#   geom_area(aes(fill = subreg), alpha = 0.5) + 
-#   coord_cartesian(xlim = c(800, 7500), ylim = c(0, 0.001))
-```
-
-```{r}
-
-# library(fitdistrplus)
-# 
-# tmp <- dens$diff1
-# tmp <- tmp[tmp > 1]
-# 
-# fit_gamma <- fitdistrplus::fitdist(as.vector(tmp), distr = "gamma", method = "mme")
-# summary(fit_gamma)
-# 
-# plot(fit_gamma)
+cowplot::plot_grid(p2_pos, p2_neg, p2_leg, ncol = 1, rel_heights = c(0.45, 0.45, 0.1)) 
+grDevices::jpeg(filename = "Plots/figure_6_SI.jpg", 
+               width = 800, 
+               height = 500, 
+               units = "px", 
+               quality = 1)
+cowplot::plot_grid(p2_pos, p2_neg, p2_leg, ncol = 1, rel_heights = c(0.45, 0.45, 0.1)) 
+dev.off()
 
 ```
 
-Data
 
-<!-- Populations -->
-
-<!-- ```{r} -->
-<!-- ssp_path <- "/home/thomson/Data/SSPs/" -->
-
-<!-- ssp_base <- read_csv( -->
-<!--   file = paste0(ssp_path, -->
-<!--                 "SspDb_country_data_2013-06-12.csv"), -->
-<!--   col_types = cols( -->
-<!--     .default = col_logical(), -->
-<!--     MODEL = col_character(), -->
-<!--     SCENARIO = col_character(), -->
-<!--     REGION = col_character(), -->
-<!--     VARIABLE = col_character(), -->
-<!--     UNIT = col_character(), -->
-<!--     `2010` = col_double(), -->
-<!--     `2015` = col_double(), -->
-<!--     `2020` = col_double(), -->
-<!--     `2025` = col_double(), -->
-<!--     `2030` = col_double(), -->
-<!--     `2035` = col_double(), -->
-<!--     `2040` = col_double(), -->
-<!--     `2045` = col_double(), -->
-<!--     `2050` = col_double(), -->
-<!--     `2055` = col_double(), -->
-<!--     `2060` = col_double(), -->
-<!--     `2065` = col_double(), -->
-<!--     `2070` = col_double(), -->
-<!--     `2075` = col_double(), -->
-<!--     `2080` = col_double(), -->
-<!--     `2085` = col_double(), -->
-<!--     `2090` = col_double(), -->
-<!--     `2095` = col_double(), -->
-<!--     `2100` = col_double() -->
-<!--   ) -->
-<!-- ) -->
-<!-- ``` -->
-
-<!-- ```{r} -->
-<!-- pop_proj <- ssp_base %>% -->
-<!--   dplyr::filter(VARIABLE == "Population") %>% -->
-<!--   dplyr::select(-c('1950':'2005'),-c('2105':'2150')) %>% -->
-<!--   tidyr::pivot_longer( -->
-<!--     ., -->
-<!--     cols = c('2010':'2100'), -->
-<!--     names_to = "year", -->
-<!--     values_to = "millions" -->
-<!--   ) %>% -->
-<!--   tidyr::separate(., -->
-<!--                   SCENARIO, -->
-<!--                   into = c("scenario", "na1", "na2"), -->
-<!--                   sep = "_") %>%  -->
-<!--   dplyr::mutate(scenario = ifelse(scenario == "SSP4d",  -->
-<!--                                   "SSP4",  -->
-<!--                                   scenario),  -->
-<!--                 year = as.numeric(year)) %>%  -->
-<!--   dplyr::rename(iso_alpha3 = REGION) %>%  -->
-<!--   dplyr::select(-na1, -na2, -VARIABLE, -UNIT, -MODEL) -->
-<!-- ``` -->
-
-<!-- Interpolate populations to fill in data for missing years. -->
-
-<!-- ```{r} -->
-<!-- library(splines) -->
-<!-- library(purrr) -->
-
-<!-- spline_model_fit <- function(x){ -->
-<!--   lmod <- lm(millions ~ bs(year, knots = seq(2010, 2100, by = 5), degree = 1), data = x) -->
-<!--   lmod_pred <- predict(lmod, newdata = data.frame(year = seq(2010, 2100, by = 1))) -->
-<!--   data.frame(year = seq(2010, 2100, by = 1), millions = lmod_pred) -->
-<!-- } -->
-
-<!-- pop_proj_interp <- pop_proj %>%  -->
-<!--   dplyr::group_by(scenario, iso_alpha3) %>%  -->
-<!--   tidyr::nest() %>%  -->
-<!--   dplyr::mutate(lmods_interp = map(data, spline_model_fit)) %>%  -->
-<!--   tidyr::unnest(lmods_interp) %>%  -->
-<!--   dplyr::select(-data) %>%  -->
-<!--   dplyr::ungroup() -->
-
-<!-- ``` -->
-
-<!-- ```{r} -->
-<!-- pop_proj_regions <- pop_proj_interp %>%  -->
-<!--   dplyr::left_join(loc_map_reduced) -->
-<!-- ``` -->
 
 Pathways and FAO historical data.
 
@@ -3004,97 +2908,6 @@ Food_feed_curv_regions <- food_feed_curv_regions %>%
                 scenario = "FAO data")
 ```
 
-<!-- Include population data for projections -->
-
-<!-- ```{r} -->
-<!-- Food_feed_pathways_curves_regions_percap <- Food_feed_pathways_curves_regions %>%   -->
-<!--   dplyr::left_join(pop_proj_regions) %>%  -->
-<!--   dplyr::mutate(kg_yr_cap = kt_yr/millions) %>%  -->
-<!--   dplyr::group_by(food_group, iso_alpha3, diet_plan, scenario, target_year) %>%  -->
-<!--   dplyr::mutate(diff1_cap = kg_yr_cap - lag(kg_yr_cap, n = 1L, default = NA),  -->
-<!--                 diff2_cap = diff1_cap - lag(diff1_cap, n = 1L, default = NA)) %>%  -->
-<!--   dplyr::ungroup() -->
-
-<!-- ``` -->
-
-<!-- Need historical population data. -->
-
-<!-- ```{r} -->
-
-<!-- pop_hist <- Fb_hist_df %>%  -->
-<!--   dplyr::filter(element_code == 511) %>%  -->
-<!--   dplyr::mutate(millions = 1e-3*value) %>%  -->
-<!--   dplyr::select(area_code, year, millions) %>%  -->
-<!--   dplyr::rename( -->
-<!--     fao_countrycode = area_code -->
-<!--   ) -->
-
-<!-- ``` -->
-
-<!-- ```{r} -->
-<!-- Food_feed_curv_regions_percap <- Food_feed_curv_regions %>%   -->
-<!--   dplyr::left_join(pop_hist) %>%  -->
-<!--   dplyr::mutate(kg_yr_cap = kt_yr_smoothed/millions) %>%  -->
-<!--   dplyr::group_by(food_group, iso_alpha3) %>%  -->
-<!--   dplyr::mutate(diff1_cap = kg_yr_cap - lag(kg_yr_cap, n = 1L, default = NA),  -->
-<!--                 diff2_cap = diff1_cap - lag(diff1_cap, n = 1L, default = NA)) %>%  -->
-<!--   dplyr::ungroup() -->
-<!-- ``` -->
-
-<!-- ```{r} -->
-<!-- tmp_fao <- Food_feed_curv_regions %>%  -->
-<!--   dplyr::filter(diff1 > 2500) %>%  -->
-<!--   pull(diff1) -->
-
-<!-- tmp_2055 <- Food_feed_pathways_curves_regions %>%  -->
-<!--   dplyr::filter(diff1 > 2500) %>%  -->
-<!--   dplyr::filter(diet_plan == "ELA-PHD", target_year == 2055) %>%  -->
-<!--   pull(diff1) %>% na.omit() -->
-<!-- ``` -->
-
-<!-- ```{r} -->
-<!-- ks.test(tmp_2055, tmp_fao) -->
-<!-- ``` -->
-
-Annual rate of change of pathway curves
-
-```{r}
-
-threshold_rate = 2500
-
-p_rate_pos_fao <- ggplot(
-  data = Food_feed_curv_regions %>%
-    dplyr::filter(diff1 >= 0) %>%
-    dplyr::filter(abs(diff1) > threshold_rate),
-  mapping = aes(x = diff1)
-) +
-  geom_density()
-
-p_rate_neg_fao <- ggplot(
-  data = Food_feed_curv_regions %>%
-    dplyr::filter(diff1 < 0) %>%
-    dplyr::filter(abs(diff1) > threshold_rate),
-  mapping = aes(x = diff1)
-) +
-  geom_density() +
-  scale_x_reverse()
-
-p_rate_pos_data <- ggplot_build(p_rate_pos_fao)
-p_rate_neg_data <- ggplot_build(p_rate_neg_fao)
-
-rate_pos_fao_data <- p_rate_pos_data$data[[1]] %>%
-  dplyr::mutate(type = "hist_data", 
-                diff1 = x, 
-                density = density) %>%
-  dplyr::select(type, diff1, density)
-
-rate_neg_fao_data <- p_rate_neg_data$data[[1]] %>%
-  dplyr::mutate(type = "hist_data", 
-                diff1 = x, 
-                density = density) %>%
-  dplyr::select(type, diff1, density)
-
-```
 
 ```{r}
 
@@ -3283,26 +3096,6 @@ ggplot(
   facet_wrap(~ diet_plan)
 ```
 
-```{r}
-
-# tmp_fao <- rate_pos_fao_data %>% pull(density)
-# tmp_2045 <-
-#   rate_pos_pathways %>% filter(diet_plan == "ELA-PHD", target_year == 2045) %>% pull(density)
-# tmp_2050 <-
-#   rate_pos_pathways %>% filter(diet_plan == "ELA-PHD", target_year == 2050) %>% pull(density)
-# tmp_2055 <-
-#   rate_pos_pathways %>% filter(diet_plan == "ELA-PHD", target_year == 2055) %>% pull(density)
-# tmp_2060 <-
-#   rate_pos_pathways %>% filter(diet_plan == "ELA-PHD", target_year == 2060) %>% pull(density)
-# tmp_2065 <-
-#   rate_pos_pathways %>% filter(diet_plan == "ELA-PHD", target_year == 2065) %>% pull(density)
-# 
-# 
-# fit_gamma <- fitdistrplus::fitdist(as.vector(tmp), distr = "gamma", method = "mme")
-# summary(fit_gamma)
-# 
-# plot(fit_gamma)[1]
-```
 
 Use normalized histograms to do this test.
 
@@ -3366,9 +3159,9 @@ test <- data.frame(
 
 ```
 
-First differences.
+First differences. (This will throw some warnings about removing rows containing non-finite values.)
 
-```{r}
+```{r, warning=FALSE}
 # p_path_ls <- list()
 Path_diff1_df <- data.frame()
 for(scen in c("SSP1", "SSP2", "SSP3", "SSP4", "SSP5")) {
@@ -3414,7 +3207,7 @@ for(scen in c("SSP1", "SSP2", "SSP3", "SSP4", "SSP5")) {
 
 Second differences.
 
-```{r}
+```{r, warning=FALSE}
 # p_path_ls <- list()
 Path_diff2_df <- data.frame()
 for(scen in c("SSP1", "SSP2", "SSP3", "SSP4", "SSP5")) {
@@ -3501,187 +3294,6 @@ Path_diff1_norm_df$diet_plan_f <- factor(Path_diff1_norm_df$diet_plan_f, levels 
 ```
 
 
-```{r}
-scen = "SSP3"
-diet = "CNS"
-
-p_diff1_pdf <- ggplot(Path_diff1_norm_df %>% 
-         filter(scenario == scen, 
-                diet_plan_f == diet), 
-       aes(x = x, 
-           y = counts_norm)) + 
-  geom_line(aes(colour = as.factor(target_year)), alpha = 0.7, size = 1.2) + 
-  geom_line(data = fao_hist_diff1_norm_df, 
-            aes(x = x,
-                y = counts_norm), 
-               colour = "firebrick") + 
-  theme_minimal() + 
-  theme(
-    legend.position = "top", 
-    legend.title = element_blank(), 
-    axis.title.y = element_blank(), 
-    axis.title.x = element_blank(), 
-    axis.text.y = element_text(size = 8)
-  ) + 
-  labs(
-    title = "Rate of change of productivity", 
-    subtitle = paste("Density distribution, for", scen, "and", diet, sep = " ")
-  ) + 
-  scale_y_sqrt(labels = scales::label_number(accuracy = 0.01)) + 
-  coord_cartesian(xlim = c(-3e4, 5e4))
-
-p_legend <- cowplot::get_legend(p_diff1_pdf)
- 
-p_diff1_pdf <- p_diff1_pdf +
-  theme(legend.position = "none")
-
-p_diff1_cdf <- ggplot(Path_diff1_norm_df %>% 
-         filter(scenario == scen, 
-                diet_plan == diet), 
-       aes(x = x, 
-           y = cdf)) + 
-  geom_line(aes(colour = as.factor(target_year)), alpha = 0.7, size = 1.2) + 
-  geom_line(data = fao_hist_diff1_norm_df, 
-            aes(x = x,
-                y = cdf), 
-               colour = "firebrick") + 
-  theme_minimal() + 
-  theme(
-    legend.position = "none", 
-    legend.title = element_blank(), 
-    axis.title.y = element_blank(), 
-    axis.title.x = element_blank(), 
-    axis.text.y = element_text(size = 8)
-  ) + 
-  labs(
-    subtitle = "Cumulative distribution"
-  ) + 
-  coord_cartesian(xlim = c(-3e4, 5e4))
-
-test1 <- fao_hist_diff1_norm_df %>% 
-  full_join(Path_diff1_norm_df, by = "x")
-
-test2 <- test1 %>% 
-  mutate(cdf_diff = cdf.x - cdf.y)
-
-p_diff1_cdfresiduals <- ggplot(test2 %>% 
-         filter(scenario == scen, 
-                diet_plan == diet), 
-         aes(x = x, 
-             y = cdf_diff)) + 
-  geom_line(aes(colour = as.factor(target_year)), size = 1.2, alpha = 0.7) + 
-  geom_segment(x = -11500, 
-               xend = 48500, 
-               y = 0, 
-               yend = 0, 
-               alpha = 0.8, 
-               size = 0.35, 
-               colour = "firebrick") + 
-  theme_minimal() + 
-  theme(
-    legend.position = "none", 
-    axis.title.y = element_blank(), 
-    axis.text.y = element_text(size = 8)
-  ) + 
-  labs(
-    subtitle = "CDF residuals", 
-    x = "ROC (kt/yr)"
-  ) + 
-  coord_cartesian(xlim = c(-3e4, 5e4))
-
-# p_diff2 <- ggplot(Path_diff2_norm_df %>% 
-#          filter(scenario == "SSP3", 
-#                 diet_plan == "CNS-CFP"), 
-#        aes(x = x, 
-#            y = counts_norm)) + 
-#   geom_line(aes(colour = as.factor(target_year)), alpha = 0.5) + 
-#   geom_line(data = fao_hist_diff2_norm_df, 
-#             aes(x = x,
-#                 y = counts_norm)) + 
-#   scale_y_sqrt()
-
-```
-
-```{r}
-cowplot::plot_grid(p_diff1_pdf, p_diff1_cdf, p_diff1_cdfresiduals, p_legend, ncol = 1, rel_heights = c(0.85, 0.8, 0.8, 0.2))
-```
-
-Calculate differences from the cdf. First interpolate all missing values, then take differences.
-
-```{r}
-
-test1 <- fao_hist_diff1_norm_df %>% 
-  full_join(Path_diff1_norm_df, by = "x")
-
-cdf_residuals <- test1 %>% 
-  mutate(cdf_diff = cdf.x - cdf.y)
-
-```
-
-```{r}
-tmp <- cdf_residuals %>% 
-  filter(scenario == "SSP1", 
-         diet_plan == "CNS-CFP", 
-         x > 0) 
-
-ggplot(tmp, 
-       aes(cdf_diff)) + 
-  geom_histogram(aes(fill = as.factor(target_year)), 
-                 position = position_dodge())
-
-test_pos <- cdf_residuals %>% 
-  drop_na() %>% 
-  filter(x > 0) %>% 
-  group_by(scenario, diet_plan, target_year) %>% 
-  summarise(test = mean(cdf_diff, 
-                        na.rm = TRUE))
-
-test_neg <- cdf_residuals %>% 
-  drop_na() %>% 
-  filter(x < 0) %>% 
-  group_by(scenario, diet_plan, target_year) %>% 
-  summarise(test = mean(cdf_diff, 
-                        na.rm = TRUE))
-
-ggplot(test_pos, 
-       aes(x = target_year, 
-           y = test)) + 
-  geom_line(aes(colour = scenario)) + 
-  facet_wrap(~ diet_plan)
-
-ggplot(test_neg, 
-       aes(x = target_year, 
-           y = test)) + 
-  geom_line(aes(colour = scenario)) + 
-  facet_wrap(~ diet_plan)
-
-```
-
-```{r}
-test_pos <- Path_diff1_norm_df %>% 
-  filter(x > 0) %>% 
-  group_by(scenario, diet_plan, target_year) %>% 
-  summarise(test = mean(counts_norm, 
-                        na.rm = TRUE))
-
-test_neg <- Path_diff1_norm_df %>% 
-  filter(x < 0) %>% 
-  group_by(scenario, diet_plan, target_year) %>% 
-  summarise(test = mean(counts_norm, 
-                        na.rm = TRUE))
-
-ggplot(test_pos, 
-       aes(target_year, 
-           test)) + 
-  geom_line(aes(colour = scenario)) + 
-  facet_wrap(~ diet_plan)
-
-ggplot(test_neg, 
-       aes(target_year, 
-           test)) + 
-  geom_line(aes(colour = scenario)) + 
-  facet_wrap(~ diet_plan)
-```
 
 ```{r}
 
@@ -3696,8 +3308,8 @@ Path_diff1_norm_df <- Path_diff1_norm_df %>%
 
 Path_diff1_norm_df$diet_plan_f <- factor(Path_diff1_norm_df$diet_plan, levels = c("ELA", "CNS", "USDA"))
 
-
 ```
+
 
 ```{r}
 fao_hist_diff1_pos <- fao_hist_diff1_norm_df %>% 
@@ -3808,7 +3420,7 @@ p_diff1_neg <- ggplot(path_diff1_neg,
 
 
 ```{r}
-grDevices::jpeg(filename = "Plots/roc_vals.jpg", 
+grDevices::jpeg(filename = "Plots/figure_6.jpg", 
                width = 500, 
                height = 300, 
                units = "px", 
@@ -3818,1795 +3430,10 @@ cowplot::plot_grid(p_legend, p_diff1_pos,p_diff1_neg, ncol = 1, rel_heights = c(
 dev.off()
 ```
 
-```{r}
-scen = "SSP3"
-diet = "CNS-CFP"
-
-p_diff2_pdf <- ggplot(Path_diff2_norm_df %>% 
-         filter(scenario == scen, 
-                diet_plan == diet), 
-       aes(x = x, 
-           y = counts_norm)) + 
-  geom_line(aes(colour = as.factor(target_year)), alpha = 0.7, size = 1.2) + 
-  geom_line(data = fao_hist_diff2_norm_df, 
-            aes(x = x,
-                y = counts_norm)) + 
-  theme_minimal() + 
-  theme(
-    legend.position = "top", 
-    legend.title = element_blank(), 
-    axis.title.y = element_blank(), 
-    axis.title.x = element_blank(), 
-    axis.text.y = element_text(size = 8)
-  ) + 
-  labs(
-    title = "Curvature of productivity", 
-    subtitle = paste("Density distribution, for", scen, "and", diet, sep = " ")
-  ) + 
-  scale_y_sqrt(labels = scales::label_number(accuracy = 0.01)) + 
-  coord_cartesian(xlim = c(-2.2e4, 2e4))
-
-p_legend <- cowplot::get_legend(p_diff2_pdf)
- 
-p_diff2_pdf <- p_diff2_pdf +
-  theme(legend.position = "none")
-
-p_diff2_cdf <- ggplot(Path_diff2_norm_df %>% 
-         filter(scenario == scen, 
-                diet_plan == diet), 
-       aes(x = x, 
-           y = cdf)) + 
-  geom_line(aes(colour = as.factor(target_year)), alpha = 0.7, size = 1.2) + 
-  geom_line(data = fao_hist_diff2_norm_df, 
-            aes(x = x,
-                y = cdf)) + 
-  theme_minimal() + 
-  theme(
-    legend.position = "none", 
-    legend.title = element_blank(), 
-    axis.title.y = element_blank(), 
-    axis.title.x = element_blank(), 
-    axis.text.y = element_text(size = 8)
-  ) + 
-  labs(
-    subtitle = "Cumulative distribution"
-  ) + 
-  coord_cartesian(xlim = c(-2.2e4, 2e4))
-
-test1 <- fao_hist_diff2_norm_df %>% 
-  full_join(Path_diff2_norm_df, by = "x")
-
-test2 <- test1 %>% 
-  mutate(cdf_diff = cdf.y - cdf.x, 
-         countsnorm_diff = counts_norm.y - counts_norm.x)
-
-p_diff2_cdfresiduals <- ggplot(test2 %>% 
-         filter(scenario == scen, 
-                diet_plan == diet), 
-         aes(x = x, 
-             y = countsnorm_diff)) + 
-  geom_line(aes(colour = as.factor(target_year)), size = 1.2, alpha = 0.7) + 
-  geom_segment(x = -22000, 
-               xend = 19300, 
-               y = 0, 
-               yend = 0, 
-               alpha = 0.8, 
-               size = 0.35) + 
-  theme_minimal() + 
-  theme(
-    legend.position = "none", 
-    axis.title.y = element_blank(), 
-    axis.text.y = element_text(size = 8)
-  ) + 
-  labs(
-    subtitle = "Residuals", 
-    x = "pathway curvature (kt/yr/yr)"
-  ) + 
-  coord_cartesian(xlim = c(-2.2e4, 2e4), 
-                  ylim = c(-0.1, 0.1))
-
-# p_diff2 <- ggplot(Path_diff2_norm_df %>% 
-#          filter(scenario == "SSP3", 
-#                 diet_plan == "CNS-CFP"), 
-#        aes(x = x, 
-#            y = counts_norm)) + 
-#   geom_line(aes(colour = as.factor(target_year)), alpha = 0.5) + 
-#   geom_line(data = fao_hist_diff2_norm_df, 
-#             aes(x = x,
-#                 y = counts_norm)) + 
-#   scale_y_sqrt()
-
-```
 
 ```{r}
-cowplot::plot_grid(p_diff2_pdf, p_diff2_cdfresiduals, p_legend, ncol = 1, rel_heights = c(0.85, 0.8, 0.2))
-```
-
-```{r}
-
-pos_tmp1 <- fao_hist_norm_pos_df %>% 
-  filter(x != 0) %>% 
-  mutate(count_hist = counts_norm, 
-         sign = "pos") %>% 
-  dplyr::select(x, count_hist, sign)
-
-neg_tmp1 <- fao_hist_norm_neg_df %>% 
-  filter(x != 0) %>% 
-  mutate(count_hist = counts_norm, 
-         sign = "neg") %>% 
-  dplyr::select(x, count_hist, sign)
-
-pos_tmp2 <- Path_norm_pos_df %>% 
-  filter(x != 0) %>% 
-  mutate(count_path = counts_norm, 
-         sign = "pos") %>% 
-  dplyr::select(x, count_path, scenario, target_year, diet_plan, sign)
-
-neg_tmp2 <- Path_norm_neg_df %>% 
-  filter(x != 0) %>% 
-  mutate(count_path = counts_norm, 
-         sign = "neg") %>% 
-  dplyr::select(x, count_path, scenario, target_year, diet_plan, sign)
-
-tmp <- pos_tmp1 %>% 
-  full_join(pos_tmp2) %>% 
-  full_join(neg_tmp1) %>% 
-  full_join(neg_tmp2) %>% 
-  # drop_na() %>% 
-  group_by(x, target_year, diet_plan, sign) %>% 
-  summarise(count_hist = mean(count_hist),
-            count_path_ave = mean(count_path),
-            count_path_max = max(count_path),
-            count_path_min = min(count_path))
-
-ggplot(tmp %>% 
-         filter(!is.na(diet_plan), !is.na(target_year), sign == "pos"), 
-       aes(x = count_hist)) + 
-  geom_point(aes(y = count_path_ave, alpha = as.factor(target_year)), 
-             size = 2, 
-             colour = scales::muted("blue")) + 
-  geom_errorbar(aes(ymin = count_path_min, ymax = count_path_max),
-                size = 0.1) + 
-  geom_abline(slope = 1, 
-              linetype = 2) + 
-  geom_vline(xintercept = 0, alpha = 0.8) + 
-  geom_hline(yintercept = 0, alpha = 0.8) + 
-  theme_minimal() + 
-  theme(
-    legend.title = element_blank(), 
-    legend.position = "top", 
-    axis.text.x = element_text(angle = 90)
-  ) + 
-  labs(
-    x = "normalized historical ROC frequency", 
-    y = "normalized pathway ROC frequency"
-  ) + 
-  facet_wrap(~ diet_plan, 
-             ncol = 1) 
-```
-
-```{r}
-cdf_hist_pos <- fao_hist_norm_pos_df %>% 
-  mutate(cdf_hist = cumsum(counts_norm))
-
-cdf_hist_neg <- fao_hist_norm_neg_df %>% 
-  mutate(cdf_hist = cumsum(counts_norm))
-
-cdf_path_pos <- Path_norm_pos_df %>% 
-  group_by(scenario, diet_plan, target_year) %>% 
-  mutate(cdf_path = cumsum(counts_norm)) %>% 
-  ungroup() %>% 
-  group_by(x, diet_plan, target_year) %>% 
-  summarise(
-    cdf_path_ave = mean(cdf_path), 
-    cdf_path_min = min(cdf_path), 
-    cdf_path_max = max(cdf_path), 
-    .groups = "drop"
-  )
-
-cdf_path_neg <- Path_norm_neg_df %>% 
-  group_by(scenario, diet_plan, target_year) %>% 
-  mutate(cdf_path = cumsum(counts_norm)) %>% 
-  ungroup() %>% 
-  group_by(x, diet_plan, target_year) %>% 
-  summarise(
-    cdf_path_ave = mean(cdf_path), 
-    cdf_path_min = min(cdf_path), 
-    cdf_path_max = max(cdf_path), 
-    .groups = "drop"
-  )
-
-ggplot(cdf_path_pos, 
-       aes(x = x)) + 
-  geom_point(aes(y = cdf_path_ave), 
-             colour = muted("blue"), 
-             size = 0.5
-  ) + 
-  geom_errorbar(
-    aes(ymin = cdf_path_min, 
-        ymax = cdf_path_max), 
-    alpha = 0.8, 
-    width = 0.2
-  ) + 
-  geom_point(data = cdf_path_neg, 
-             aes(y = cdf_path_ave), 
-             colour = muted("blue"), 
-             size = 0.5
-  ) + 
-  geom_errorbar(
-    aes(ymin = cdf_path_min, 
-        ymax = cdf_path_max), 
-    alpha = 0.8, 
-    width = 0.2
-  ) + 
-   geom_line(data = cdf_hist_pos, 
-              mapping = aes(y = cdf_hist), 
-             colour = "firebrick"
-  ) + 
-   geom_line(data = cdf_hist_neg, 
-              mapping = aes(y = cdf_hist), 
-             colour = "firebrick"
-  ) + 
-  geom_vline(xintercept = 0, alpha = 0.8) + 
-  geom_hline(yintercept = 0, alpha = 0.8) + 
-  facet_wrap(~ diet_plan)
+# readr::write_csv(Food_feed_pathways_curves, file = "~/Data/food_feed_pathways.csv")
+# readr::write_csv(Food_feed_curv_regions, file = "~/Data/food_feed_fao_historical.csv")
 
 ```
 
-```{r}
-
-cdf_norm <- cdf_hist %>% 
-  full_join(cdf_path) %>% 
-  group_by(scenario, diet_plan, target_year) %>% 
-  mutate(bins = 1e-2*ntile(x, n = 100)) %>% 
-  ungroup()
-
-ggplot(cdf_norm, 
-       aes(x = bins)) + 
-  geom_line(aes(y = cdf_hist)) + 
-  geom_point(aes(y = cdf_path, 
-                 alpha = scenario), 
-             colour = muted("blue"), 
-             size = 0.5
-  ) + 
-  geom_vline(xintercept = 0, alpha = 0.8) + 
-  geom_hline(yintercept = 0, alpha = 0.8) + 
-  geom_abline(slope = 1, 
-              linetype = 2) + 
-  facet_wrap(~ diet_plan)
-
-```
-
-Find positive and negative rates and mean values.
-
-```{r}
-
-
-hist_means_df <- fao_hist_df %>% 
-  dplyr::mutate(sign = if_else(x >= 0, 
-                               "pos", 
-                               "neg")) %>% 
-  dplyr::filter(x != 0) %>% 
-  dplyr::group_by(sign) %>% 
-  dplyr::summarise(n_hist = n(), 
-                   meanx_hist = sum(x*count)/n_hist, 
-                   .groups = "drop")
-
-path_means_df <- Path_df %>% 
-  dplyr::mutate(sign = if_else(x >= 0, 
-                               "pos", 
-                               "neg")) %>% 
-  dplyr::filter(x != 0) %>% 
-  dplyr::group_by(scenario, diet_plan, target_year, sign) %>% 
-  dplyr::summarise(n_path = n(), 
-                   meanx_path = sum(x*count)/n_path, 
-                   .groups = "drop")
-
-path_residue_df <- path_means_df %>% 
-  dplyr::full_join(hist_means_df, by = "sign") %>% 
-  dplyr::mutate(path_residue = meanx_path - meanx_hist)
-
-
-```
-
-```{r}
-ggplot(path_residue_df %>% 
-         filter(sign == "pos", 
-                scenario == "SSP5"), 
-       aes(x = target_year, 
-           y = path_residue)) + 
-  geom_col() + 
-  facet_wrap(~ diet_plan)
-
-ggplot(path_residue_df %>% 
-         filter(sign == "neg", 
-                scenario == "SSP5"), 
-       aes(x = target_year, 
-           y = path_residue)) + 
-  geom_col() + 
-  facet_wrap(~ diet_plan)
-```
-
-Annual curvature (acceleration) of pathway curves
-
-```{r}
-
-threshold_curv = 500
-
-p_curv_pos_fao <- ggplot(
-  data = Food_feed_curv_regions %>%
-    dplyr::filter(diff2 >= 0) %>%
-    dplyr::filter(abs(diff2) > threshold_curv),
-  mapping = aes(x = diff2)
-) +
-  geom_density()
-
-p_curv_neg_fao <- ggplot(
-  data = Food_feed_curv_regions %>%
-    dplyr::filter(diff2 < 0) %>%
-    dplyr::filter(abs(diff2) > threshold_curv),
-  mapping = aes(x = diff2)
-) +
-  geom_density() +
-  scale_x_reverse()
-
-p_curv_pos_data <- ggplot_build(p_curv_pos_fao)
-p_curv_neg_data <- ggplot_build(p_curv_neg_fao)
-
-curv_pos_fao_data <- p_curv_pos_data$data[[1]] %>%
-  dplyr::mutate(type = "hist_data", 
-                diff2 = x, 
-                density = density) %>%
-  dplyr::select(type, diff2, density)
-
-curv_neg_fao_data <- p_curv_neg_data$data[[1]] %>%
-  dplyr::mutate(type = "hist_data", 
-                diff2 = x, 
-                density = density) %>%
-  dplyr::select(type, diff2, density)
-
-```
-
-```{r}
-
-scenar = "SSP3"
-
-curv_palette <- brewer.pal(name="Purples", n=9)[5:9]
-
-p_curv_pos <- ggplot(
-  data = Food_feed_pathways_curves %>%
-    dplyr::filter(diff2 >= 0) %>%
-    dplyr::filter(abs(diff2) > threshold_curv, 
-                  scenario == scenar),
-  mapping = aes(x = diff2)
-) +
-  geom_density(aes(fill = as.factor(target_year), 
-                   colour = as.factor(target_year)), 
-               alpha = 0.8, 
-               size = 1) + 
-  geom_line(
-    data = curv_pos_fao_data,
-    mapping = aes(x = diff2, y = density), 
-    size = 1.1, 
-    alpha = 0.8, 
-    colour = "red", 
-    inherit.aes = FALSE
-  ) +
-  scale_fill_manual(values = curv_palette) +
-  scale_color_manual(values = curv_palette) + 
-  geom_vline(xintercept = threshold_curv, 
-             linetype = 2, 
-             colour = "firebrick", 
-             alpha = 0.5) + 
-  theme_minimal() + 
-  theme(
-    legend.title = element_blank(), 
-    legend.position = "top", 
-    axis.text.x = element_text(angle = 90, 
-                               size = 7)
-  ) + 
-  labs(
-    subtitle = paste0(scenar, ", year-to-year positive curvature"), 
-    x = "curvature (kt/yr/yr)", 
-    y = "density"
-  ) + 
-  coord_cartesian(xlim = c(0, 7.5e3)) + 
-  facet_wrap(~ diet_plan)
-
-p_curv_legend <- cowplot::get_legend(p_curv_pos)
-
-p_curv_pos <- p_curv_pos + 
-  theme(
-    legend.position = "none"
-  )
-
-p_curv_neg <- ggplot(
-  data = Food_feed_pathways_curves %>%
-    dplyr::filter(diff2 < 0) %>%
-    dplyr::filter(abs(diff2) > threshold_curv, 
-                  scenario == scenar),
-  mapping = aes(x = diff2)
-) +
-  geom_density(aes(fill = as.factor(target_year), 
-                   colour = as.factor(target_year)), 
-               alpha = 0.8, 
-               size = 1) + 
-  geom_line(
-    data = curv_neg_fao_data,
-    mapping = aes(x = -diff2, y = density), 
-    size = 1.1, 
-    alpha = 0.8, 
-    colour = "red", 
-    inherit.aes = FALSE
-  ) +
-  scale_fill_manual(values = curv_palette) +
-  scale_color_manual(values = curv_palette) + 
-  geom_vline(xintercept = -threshold_curv, 
-             linetype = 2, 
-             colour = "firebrick", 
-             alpha = 0.5) + 
-  scale_x_reverse() + 
-  theme_minimal() + 
-  theme(
-    legend.position = "none",
-    legend.title = element_blank(), 
-    axis.text.x = element_text(angle = 90, 
-                               size = 7)
-  ) + 
-  labs(
-    subtitle = paste0(scenar, ", year-to-year negative curvature"), 
-    x = "curvature (kt/yr/yr)", 
-    y = "density"
-  ) + 
-  coord_cartesian(xlim = c(0, -7.5e3)) + 
-  facet_wrap(~ diet_plan)
-
-```
-
-```{r}
-cowplot::plot_grid(
-  p_rate_legend,
-  p_rate_pos,
-  p_rate_neg,
-  nrow = 3,
-  rel_heights = c(0.2, 1, 1)
-)
-
-cowplot::plot_grid(
-  p_curv_legend,
-  p_curv_pos,
-  p_curv_neg,
-  nrow = 3,
-  rel_heights = c(0.2, 1, 1)
-)
-  
-```
-
-test
-
-```{r}
-
-diff1_tmp <- food_feed_curv %>%
-  dplyr::filter(diff1 > 0) %>%
-  dplyr::pull(diff1) %>%
-  na.omit()
-diff2_tmp <- food_feed_curv %>%
-  dplyr::filter(diff2 > 0) %>%
-  dplyr::pull(diff2) %>%
-  na.omit()
-
-kde_fao_diff1 <- ks::kde(diff1_tmp)
-kde_fao_diff2 <- ks::kde(diff2_tmp)
-
-kde_fao_diff1_df <- data.frame(
-  diff1 = kde_fao_diff1$eval.points,
-  diff1_dens = kde_fao_diff1$estimate,
-  scenario = "FAO",
-  diet_plan = "FAO",
-  target_year = "FAO"
-)
-kde_fao_diff2_df <- data.frame(
-  diff2 = kde_fao_diff2$eval.points,
-  diff2_dens = kde_fao_diff2$estimate,
-  scenario = "FAO",
-  diet_plan = "FAO",
-  target_year = "FAO"
-)
-
-```
-
-```{r}
-readr::write_csv(Food_feed_pathways_curves, file = "~/Data/food_feed_pathways.csv")
-readr::write_csv(Food_feed_curv_regions, file = "~/Data/food_feed_fao_historical.csv")
-
-```
-
-```{r}
-#find kdes
-
-kde_rate_df <- data.frame()
-kde_curv_df <- data.frame()
-for (scenar in c("SSP1", "SSP2", "SSP3", "SSP4", "SSP5")) {
-  for (diet_pl in c("CNS-CFP", "ELA-PHD", "FDA-SDP")) {
-    for (targ_yr in seq(2045, 2065, by = 5)) {
-      diff1_tmp <- Food_feed_pathways_curves %>%
-        dplyr::filter(scenario == scenar,
-                      diet_plan == diet_pl,
-                      target_year == targ_yr) %>% 
-                dplyr::filter(diff1 > 0) %>% 
-        dplyr::pull(diff1) %>%
-        na.omit()
-      
-      diff2_tmp <- Food_feed_pathways_curves %>%
-        dplyr::filter(scenario == scenar,
-                      diet_plan == diet_pl,
-                      target_year == targ_yr) %>% 
-        dplyr::filter(diff2 > 0) %>% 
-        dplyr::pull(diff2) %>%
-        na.omit()
-      
-      kde_diff1 <- ks::kde(diff1_tmp)
-      kde_diff1_df <- data.frame(
-        diff1 = kde_diff1$eval.points,
-        diff1_dens = kde_diff1$estimate,
-        scenario = scenar,
-        diet_plan = diet_pl,
-        target_year = targ_yr
-      )
-      
-      kde_diff2 <- ks::kde(diff2_tmp)
-      kde_diff2_df <- data.frame(
-        diff2 = kde_diff2$eval.points,
-        diff2_dens = kde_diff2$estimate,
-        scenario = scenar,
-        diet_plan = diet_pl,
-        target_year = targ_yr
-      )
-      
-      kde_rate_df <- kde_rate_df %>%
-        dplyr::bind_rows(kde_diff1_df)
-      
-      kde_curv_df <- kde_curv_df %>%
-        dplyr::bind_rows(kde_diff2_df)
-      
-    }
-  }
-}
-
-```
-
-```{r}
-
-ggplot(kde_curv_df %>% 
-         filter(diet_plan == "CNS-CFP", target_year == 2050), 
-       aes(x = diff2, y = diff2_dens)) + 
-  geom_line(aes(colour = scenario)) + 
-  geom_line(data = kde_fao_diff2_df, 
-            mapping = aes(x = diff2, 
-                        y = diff2_dens)) 
-
-```
-
-```{r}
-tmp <- Food_feed_pathways_curves %>% 
-  filter(diet_plan == "CNS-CFP", scenario == "SSP3", target_year == 2055) %>% 
-  pull(diff1) %>% 
-  na.omit()
-
-kde_tmp <- ks::kde(as.vector(tmp))
-kde_df <- data.frame(
-  x = kde_tmp$eval.points, 
-  y = kde_tmp$estimate
-)
-
-kde_tmp <- stats::density(tmp)
-kde_df <- data.frame(
-  x = kde_tmp$x, 
-  y = kde_tmp$y
-)
-
-
-plot(kde_df, type = "l")
-
-sum(kde_df$y)
-```
-
-Pull data from these and other (non-visualised) density plots to determine residues over historical densities.
-
-```{r}
-
-# threshold_rate <- 2500
-# threshold_curv <- 500
-threshold_rate <- 0
-threshold_curv <- 0
-
-curv_palette <- brewer.pal(name = "Purples", n = 9)[5:9]
-curv_palette_labs <- c("2045", "2050", "2055", "2060", "2065")
-
-for (scenar in c("SSP1", "SSP2", "SSP3", "SSP4", "SSP5")) {
-  #rate of change (ROC) for pathways
-  p_rate_pos <- ggplot(
-    data = Food_feed_pathways_curves %>%
-      dplyr::filter(diff1 >= 0) %>%
-      dplyr::filter(abs(diff1) > threshold_rate,
-                    scenario == scenar),
-    mapping = aes(x = diff1,
-                  stat = "identity")
-  ) +
-    geom_density(aes(
-      fill = as.factor(target_year),
-      colour = as.factor(target_year)
-    )) +
-    scale_fill_manual(values = curv_palette, labels = curv_palette_labs) +
-    scale_color_manual(values = curv_palette) +
-    facet_wrap(~ diet_plan)
-  
-  p_rate_neg <- ggplot(
-    data = Food_feed_pathways_curves %>%
-      dplyr::filter(diff1 < 0) %>%
-      dplyr::filter(abs(diff1) > threshold_rate,
-                    scenario == scenar),
-    mapping = aes(x = -diff1,
-                  stat = "identity")
-  ) +
-    geom_density(aes(
-      fill = as.factor(target_year),
-      colour = as.factor(target_year)
-    )) +
-    scale_fill_manual(values = curv_palette) +
-    scale_color_manual(values = curv_palette) +
-    facet_wrap(~ diet_plan)
-  
-  p_rate_pos_path <- ggplot_build(p_rate_pos)
-  p_rate_neg_path <- ggplot_build(p_rate_neg)
-  
-  rate_pos_path <- p_rate_pos_path$data[[1]] %>%
-    dplyr::mutate(
-      type = "pathway",
-      diff1 = x,
-      diff1_density = density,
-      diet_plan = ifelse(PANEL == 1,
-                         "CNS-CFP",
-                         ifelse(PANEL == 2,
-                                "ELA-PHD",
-                                "FDA-SDP")),
-      target_year = ifelse(
-        fill == "#9E9AC8",
-        2045,
-        ifelse(
-          fill == "#807DBA",
-          2050,
-          ifelse(fill == "#6A51A3",
-                 2055,
-                 ifelse(fill == "#54278F",
-                        2060,
-                        2065))
-        )
-      ),
-      scenario = scenar
-    ) %>%
-    dplyr::filter(!is.na(target_year)) %>%
-    dplyr::select(type, scenario, diet_plan, target_year, diff1, diff1_density)
-  rate_neg_path <- p_rate_neg_path$data[[1]] %>%
-    dplyr::mutate(
-      type = "pathway",
-      diff1 = x,
-      diff1_density = density,
-      diet_plan = ifelse(PANEL == 1,
-                         "CNS-CFP",
-                         ifelse(PANEL == 2,
-                                "ELA-PHD",
-                                "FDA-SDP")),
-      target_year = ifelse(
-        fill == "#9E9AC8",
-        2045,
-        ifelse(
-          fill == "#807DBA",
-          2050,
-          ifelse(fill == "#6A51A3",
-                 2055,
-                 ifelse(fill == "#54278F",
-                        2060,
-                        2065))
-        )
-      ),
-      scenario = scenar
-    ) %>%
-    dplyr::filter(!is.na(target_year)) %>%
-    dplyr::select(type, scenario, diet_plan, target_year, diff1, diff1_density)
-  
-  # curvature of pathways
-  p_curv_pos <- ggplot(
-    data = Food_feed_pathways_curves %>%
-      dplyr::filter(diff2 >= 0) %>%
-      dplyr::filter(abs(diff2) > threshold_curv,
-                    scenario == scenar),
-    mapping = aes(x = diff2)
-  ) +
-    geom_density(aes(
-      fill = as.factor(target_year),
-      colour = as.factor(target_year)
-    )) +
-    scale_fill_manual(values = curv_palette) +
-    scale_color_manual(values = curv_palette) +
-    facet_wrap(~ diet_plan)
-  
-  p_curv_neg <- ggplot(
-    data = Food_feed_pathways_curves %>%
-      dplyr::filter(diff2 < 0) %>%
-      dplyr::filter(abs(diff2) > threshold_curv,
-                    scenario == scenar),
-    mapping = aes(x = diff2)
-  ) +
-    geom_density(aes(
-      fill = as.factor(target_year),
-      colour = as.factor(target_year)
-    )) +
-    scale_fill_manual(values = curv_palette) +
-    scale_color_manual(values = curv_palette) +
-    scale_x_reverse() +
-    facet_wrap(~ diet_plan)
-  
-  p_curv_pos_path <- ggplot_build(p_curv_pos)
-  p_curv_neg_path <- ggplot_build(p_curv_neg)
-  
-  curv_pos_path <- p_curv_pos_path$data[[1]] %>%
-    dplyr::mutate(
-      type = "pathway",
-      diff2 = x,
-      diff2_density = density,
-      diet_plan = ifelse(PANEL == 1,
-                         "CNS-CFP",
-                         ifelse(PANEL == 2,
-                                "ELA-PHD",
-                                "FDA-SDP")),
-      target_year = ifelse(
-        fill == "#9E9AC8",
-        2045,
-        ifelse(
-          fill == "#807DBA",
-          2050,
-          ifelse(fill == "#6A51A3",
-                 2055,
-                 ifelse(fill == "#54278F",
-                        2060,
-                        2065))
-        )
-      ),
-      scenario = scenar
-    ) %>%
-    dplyr::filter(!is.na(target_year)) %>%
-    dplyr::select(type, scenario, diet_plan, target_year, diff2, diff2_density)
-  
-  curv_neg_path <- p_curv_neg_path$data[[1]] %>%
-    dplyr::mutate(
-      type = "pathway",
-      diff2 = -x,
-      diff2_density = density,
-      diet_plan = ifelse(PANEL == 1,
-                         "CNS-CFP",
-                         ifelse(PANEL == 2,
-                                "ELA-PHD",
-                                "FDA-SDP")),
-      target_year = ifelse(
-        fill == "#9E9AC8",
-        2045,
-        ifelse(
-          fill == "#807DBA",
-          2050,
-          ifelse(fill == "#6A51A3",
-                 2055,
-                 ifelse(fill == "#54278F",
-                        2060,
-                        2065))
-        )
-      ),
-      scenario = scenar
-    ) %>%
-    dplyr::filter(!is.na(target_year)) %>%
-    dplyr::select(type, scenario, diet_plan, target_year, diff2, diff2_density)
-  
-  if (scenar == "SSP1") {
-    # positive rates and curvatures
-    Pos_path <- rate_pos_path %>%
-      dplyr::full_join(curv_pos_path,
-                       by = c("type", "scenario", "diet_plan", "target_year"))
-    # negative rates and curvatures
-    Neg_path <- rate_neg_path %>%
-      dplyr::full_join(curv_neg_path,
-                       by = c("type", "scenario", "diet_plan", "target_year"))
-    
-  } else {
-    # positive rates and curvatures
-    pos_path <- rate_pos_path %>%
-      dplyr::full_join(curv_pos_path,
-                       by = c("type", "scenario", "diet_plan", "target_year"))
-    Pos_path <- Pos_path %>%
-      dplyr::bind_rows(pos_path)
-    # negative rates and curvatures
-    neg_path <- rate_neg_path %>%
-      dplyr::full_join(curv_neg_path,
-                       by = c("type", "scenario", "diet_plan", "target_year"))
-    Neg_path <- Neg_path %>%
-      dplyr::bind_rows(neg_path)
-  }
-  
-}
-
-
-
-
-```
-
-Merge with FAO data
-
-```{r}
-threshold_rate = 2000
-threshold_curv = 500
-
-p_rate_pos_fao <- ggplot(
-  data = Food_feed_curv_regions %>%
-    dplyr::filter(diff1 >= 0) %>%
-    dplyr::filter(abs(diff1) > threshold_rate),
-  mapping = aes(x = diff1)
-) +
-  geom_density()
-
-p_rate_neg_fao <- ggplot(
-  data = Food_feed_curv_regions %>%
-    dplyr::filter(diff1 < 0) %>%
-    dplyr::filter(abs(diff1) > threshold_rate),
-  mapping = aes(x = diff1)
-) +
-  geom_density() +
-  scale_x_reverse()
-
-p_rate_pos_data <- ggplot_build(p_rate_pos_fao)
-p_rate_neg_data <- ggplot_build(p_rate_neg_fao)
-
-rate_pos_fao_data <- p_rate_pos_data$data[[1]] %>%
-  dplyr::mutate(type = "hist_data", 
-                diff1 = x, 
-                density = density) %>%
-  dplyr::select(type, diff1, density)
-
-rate_neg_fao_data <- p_rate_neg_data$data[[1]] %>%
-  dplyr::mutate(type = "hist_data", 
-                diff1 = x, 
-                density = density) %>%
-  dplyr::select(type, diff1, density)
-
-
-p_curv_pos_fao <- ggplot(
-  data = Food_feed_curv_regions %>%
-    dplyr::filter(diff2 >= 0) %>%
-    dplyr::filter(abs(diff2) > threshold_curv),
-  mapping = aes(x = diff2)
-) +
-  geom_density()
-
-p_curv_neg_fao <- ggplot(
-  data = Food_feed_curv_regions %>%
-    dplyr::filter(diff2 < 0) %>%
-    dplyr::filter(abs(diff2) > threshold_curv),
-  mapping = aes(x = diff2)
-) +
-  geom_density() +
-  scale_x_reverse()
-
-p_curv_pos_data <- ggplot_build(p_curv_pos_fao)
-p_curv_neg_data <- ggplot_build(p_curv_neg_fao)
-
-curv_pos_fao_data <- p_curv_pos_data$data[[1]] %>%
-  dplyr::mutate(type = "hist_data", 
-                diff2 = x, 
-                density = density) %>%
-  dplyr::select(type, diff2, density)
-
-curv_neg_fao_data <- p_curv_neg_data$data[[1]] %>%
-  dplyr::mutate(type = "hist_data", 
-                diff2 = x, 
-                density = density) %>%
-  dplyr::select(type, diff2, density)
-
-```
-
-```{r}
-# positive ROC and curvatures for FAO data
-Pos_data <- rate_pos_fao_data %>% 
-  dplyr::mutate(
-    type = "pathway", 
-    scenario = "FAO", 
-    diet_plan = "FAO", 
-    target_year = NA, 
-    diff1_density = density
-    ) %>% 
-    dplyr::select(type, scenario, diet_plan, target_year, diff1, diff1_density) %>% 
-  dplyr::full_join(curv_pos_fao_data %>% 
-  dplyr::mutate(
-    type = "pathway", 
-    scenario = "FAO", 
-    diet_plan = "FAO", 
-    target_year = NA, 
-    diff2_density = density
-    ) %>% 
-    dplyr::select(type, scenario, diet_plan, target_year, diff2, diff2_density))
-
-# negative ROC and curvatures for FAO data
-Neg_data <- rate_neg_fao_data %>% 
-  dplyr::mutate(
-    type = "pathway", 
-    scenario = "FAO", 
-    diet_plan = "FAO", 
-    target_year = NA, 
-    diff1_density = density
-    ) %>% 
-    dplyr::select(type, scenario, diet_plan, target_year, diff1, diff1_density) %>% 
-  dplyr::full_join(curv_neg_fao_data %>% 
-  dplyr::mutate(
-    type = "pathway", 
-    scenario = "FAO", 
-    diet_plan = "FAO", 
-    target_year = NA, 
-    diff2_density = density
-    ) %>% 
-    dplyr::select(type, scenario, diet_plan, target_year, diff2, diff2_density))
-
-
-```
-
-Find the residues and cumulative area of residues (above the FAO data density curve).
-
-```{r}
-#positive
-pos_fao_data_rate <- Pos_data %>% 
-  dplyr::select(diff1, diff1_density) %>% 
-  dplyr::distinct(diff1, diff1_density) %>% 
-  dplyr::mutate(diff1 = round(diff1, -2)) %>% 
-  dplyr::group_by(diff1) %>% 
-  dplyr::summarise(diff1_dens_fao = sum(diff1_density, na.rm = TRUE), 
-                   .groups = "drop") %>% 
-  dplyr::mutate(diff1_dens_fao_norm = diff1_dens_fao/sum(diff1_dens_fao)) %>% 
-  dplyr::ungroup()
-pos_fao_data_curv <- Pos_data %>% 
-  dplyr::select(diff2, diff2_density) %>% 
-  dplyr::distinct(diff2, diff2_density) %>% 
-  dplyr::mutate(diff2 = round(diff2, -2)) %>% 
-  dplyr::group_by(diff2) %>% 
-  dplyr::summarise(diff2_dens_fao = sum(diff2_density, na.rm = TRUE), 
-                   .groups = "drop") %>% 
-  dplyr::mutate(diff2_dens_fao_norm = diff2_dens_fao/sum(diff2_dens_fao)) %>% 
-  dplyr::ungroup()
-
-#negative
-neg_fao_data_rate <- Neg_data %>% 
-  dplyr::select(diff1, diff1_density) %>% 
-  dplyr::distinct(diff1, diff1_density) %>% 
-  dplyr::mutate(diff1 = round(diff1, -2)) %>% 
-  dplyr::group_by(diff1) %>% 
-  dplyr::summarise(diff1_dens_fao = sum(diff1_density, na.rm = TRUE), 
-                   .groups = "drop") %>% 
-  dplyr::mutate(diff1_dens_fao_norm = diff1_dens_fao/sum(diff1_dens_fao)) %>% 
-  dplyr::ungroup()
-neg_fao_data_curv <- Neg_data %>% 
-  dplyr::select(diff2, diff2_density) %>% 
-  dplyr::distinct(diff2, diff2_density) %>% 
-  dplyr::mutate(diff2 = round(diff2, -2)) %>% 
-  dplyr::group_by(diff2) %>% 
-  dplyr::summarise(diff2_dens_fao = sum(diff2_density, na.rm = TRUE), 
-                   .groups = "drop") %>% 
-  dplyr::mutate(diff2_dens_fao_norm = diff2_dens_fao/sum(diff2_dens_fao)) %>% 
-  dplyr::ungroup()
- 
-```
-
-For the pathways.
-
-```{r}
-#positive
-pos_path_rate <- Pos_path %>% 
-  dplyr::select(scenario, diet_plan, target_year, diff1, diff1_density) %>% 
-  dplyr::distinct(scenario, diet_plan, target_year, diff1, diff1_density) %>%
-  dplyr::mutate(diff1 = round(diff1, -2)) %>% 
-  dplyr::group_by(scenario, diet_plan, target_year, diff1) %>% 
-  dplyr::summarise(diff1_density = sum(diff1_density, na.rm = TRUE), 
-                   .groups = "drop") %>% 
-  dplyr::group_by(scenario, diet_plan, target_year) %>% 
-  dplyr::mutate(diff1_density_norm = diff1_density/sum(diff1_density)) %>% 
-  dplyr::ungroup()
-pos_path_curv <- Pos_path %>% 
-  dplyr::select(scenario, diet_plan, target_year, diff2, diff2_density) %>% 
-  dplyr::distinct(scenario, diet_plan, target_year, diff2, diff2_density) %>%
-  dplyr::mutate(diff2 = round(diff2, -2)) %>% 
-  dplyr::group_by(scenario, diet_plan, target_year, diff2) %>% 
-  dplyr::summarise(diff2_density = sum(diff2_density, na.rm = TRUE), 
-                   .groups = "drop") %>% 
-  dplyr::group_by(scenario, diet_plan, target_year) %>% 
-  dplyr::mutate(diff2_density_norm = diff2_density/sum(diff2_density)) %>% 
-  dplyr::ungroup()
-
-#negative
-neg_path_rate <- Neg_path %>% 
-  dplyr::select(scenario, diet_plan, target_year, diff1, diff1_density) %>% 
-  dplyr::distinct(scenario, diet_plan, target_year, diff1, diff1_density) %>%
-  dplyr::mutate(diff1 = round(diff1, -2)) %>% 
-  dplyr::group_by(scenario, diet_plan, target_year, diff1) %>% 
-  dplyr::summarise(diff1_density = sum(diff1_density, na.rm = TRUE), 
-                   .groups = "drop") %>% 
-  dplyr::group_by(scenario, diet_plan, target_year) %>% 
-  dplyr::mutate(diff1_density_norm = diff1_density/sum(diff1_density)) %>% 
-  dplyr::ungroup()
-neg_path_curv <- Neg_path %>% 
-  dplyr::select(scenario, diet_plan, target_year, diff2, diff2_density) %>% 
-  dplyr::distinct(scenario, diet_plan, target_year, diff2, diff2_density) %>%
-  dplyr::mutate(diff2 = round(diff2, -2)) %>% 
-  dplyr::group_by(scenario, diet_plan, target_year, diff2) %>% 
-  dplyr::summarise(diff2_density = sum(diff2_density, na.rm = TRUE), 
-                   .groups = "drop") %>% 
-  dplyr::group_by(scenario, diet_plan, target_year) %>% 
-  dplyr::mutate(diff2_density_norm = diff2_density/sum(diff2_density)) %>% 
-  dplyr::ungroup()
-
-```
-
-Now find residues.
-
-```{r}
-#positive
-pos_rate_residues <- pos_path_rate %>% 
-  dplyr::full_join(pos_fao_data_rate) %>% 
-  dplyr::mutate(diff1_dens_fao_norm = ifelse(!is.na(diff1_dens_fao_norm), 
-                                        diff1_dens_fao_norm, 
-                                        0)) %>% 
-  dplyr::mutate(diff1_residue = diff1_density_norm - diff1_dens_fao_norm) %>% 
-  dplyr::mutate(diff1_residue = ifelse(diff1_residue > 0, 
-                                       diff1_residue, 
-                                       0)) %>% 
-  dplyr::select(scenario, diet_plan, target_year, diff1, diff1_residue) %>% 
-  tidyr::drop_na()
-pos_curv_residues <- pos_path_curv %>% 
-  dplyr::full_join(pos_fao_data_curv) %>% 
-  dplyr::mutate(diff2_dens_fao_norm = ifelse(!is.na(diff2_dens_fao_norm), 
-                                        diff2_dens_fao_norm, 
-                                        0)) %>% 
-  dplyr::mutate(diff2_residue = diff2_density_norm - diff2_dens_fao_norm) %>% 
-  dplyr::mutate(diff2_residue = ifelse(diff2_residue > 0, 
-                                       diff2_residue, 
-                                       0)) %>% 
-  dplyr::select(scenario, diet_plan, target_year, diff2, diff2_residue) %>% 
-  tidyr::drop_na()
-
-#negative
-neg_rate_residues <- neg_path_rate %>% 
-  dplyr::full_join(neg_fao_data_rate) %>% 
-  dplyr::mutate(diff1_dens_fao_norm = ifelse(!is.na(diff1_dens_fao_norm), 
-                                        diff1_dens_fao_norm, 
-                                        0)) %>% 
-  dplyr::mutate(diff1_residue = diff1_density_norm - diff1_dens_fao_norm) %>% 
-  dplyr::mutate(diff1_residue = ifelse(diff1_residue > 0, 
-                                       diff1_residue, 
-                                       0)) %>% 
-  dplyr::select(scenario, diet_plan, target_year, diff1, diff1_residue) %>% 
-  tidyr::drop_na()
-neg_curv_residues <- neg_path_curv %>% 
-  dplyr::full_join(neg_fao_data_curv) %>% 
-  dplyr::mutate(diff2_dens_fao_norm = ifelse(!is.na(diff2_dens_fao_norm), 
-                                        diff2_dens_fao_norm, 
-                                        0)) %>% 
-  dplyr::mutate(diff2_residue = diff2_density_norm - diff2_dens_fao_norm) %>% 
-  dplyr::mutate(diff2_residue = ifelse(diff2_residue > 0, 
-                                       diff2_residue, 
-                                       0)) %>% 
-  dplyr::select(scenario, diet_plan, target_year, diff2, diff2_residue) %>% 
-  tidyr::drop_na()
-
-```
-
-Find residue sums (areas above the FAO density curves).
-
-```{r}
-#positive
-pos_rate_res <- pos_rate_residues %>% 
-  dplyr::group_by(scenario, diet_plan, target_year) %>% 
-  dplyr::summarise(diff1_residue_area = sum(diff1_residue), 
-                   .groups = "drop")
-pos_curv_res <- pos_curv_residues %>% 
-  dplyr::group_by(scenario, diet_plan, target_year) %>% 
-  dplyr::summarise(diff2_residue_area = sum(diff2_residue), 
-                   .groups = "drop")
-
-#negative
-neg_rate_res <- neg_rate_residues %>% 
-  dplyr::group_by(scenario, diet_plan, target_year) %>% 
-  dplyr::summarise(diff1_residue_area = sum(diff1_residue), 
-                   .groups = "drop")
-neg_curv_res <- neg_curv_residues %>% 
-  dplyr::group_by(scenario, diet_plan, target_year) %>% 
-  dplyr::summarise(diff2_residue_area = sum(diff2_residue), 
-                   .groups = "drop")
-
-```
-
-Find the range by SSP to give error bars for residue areas.
-
-```{r}
-#positive
-Pos_rate_res <- pos_rate_res %>% 
-  dplyr::group_by(diet_plan, target_year) %>% 
-  dplyr::summarise(
-    max_tmp = max(diff1_residue_area), 
-    min_tmp = min(diff1_residue_area), 
-    ave_tmp = mean(diff1_residue_area), 
-    .groups = "drop"
-  )
-Pos_curv_res <- pos_curv_res %>% 
-  dplyr::group_by(diet_plan, target_year) %>% 
-  dplyr::summarise(
-    max_tmp = max(diff2_residue_area), 
-    min_tmp = min(diff2_residue_area), 
-    ave_tmp = mean(diff2_residue_area), 
-    .groups = "drop"
-  )
-
-#negative
-Neg_rate_res <- neg_rate_res %>% 
-  dplyr::group_by(diet_plan, target_year) %>% 
-  dplyr::summarise(
-    max_tmp = max(diff1_residue_area), 
-    min_tmp = min(diff1_residue_area), 
-    ave_tmp = mean(diff1_residue_area), 
-    .groups = "drop"
-  )
-Neg_curv_res <- neg_curv_res %>% 
-  dplyr::group_by(diet_plan, target_year) %>% 
-  dplyr::summarise(
-    max_tmp = max(diff2_residue_area), 
-    min_tmp = min(diff2_residue_area), 
-    ave_tmp = mean(diff2_residue_area), 
-    .groups = "drop"
-  )
-
-```
-
-```{r}
-p_pos_rate_res <- ggplot(Pos_rate_res, 
-       aes(x = target_year, 
-           y = ave_tmp)) + 
-  geom_bar(stat = "identity", 
-           position = position_dodge(), 
-           alpha = 0.8) + 
-  geom_errorbar(aes(ymin = min_tmp, ymax = max_tmp), width = 0.25, position = position_dodge(4.5)) + 
-  scale_x_continuous(breaks = seq(2045, 2065, by = 5)) + 
-  scale_y_continuous(labels = scales::percent_format()) + 
-  theme_minimal() + 
-  theme(
-    legend.position = "none", 
-    axis.text.x = element_text(angle = 90, size = 8, vjust = 0.4), 
-    axis.title = element_blank()
-  ) + 
-  facet_wrap(~ diet_plan, nrow = 1)
-
-p_neg_rate_res <- ggplot(Neg_rate_res, 
-       aes(x = target_year, 
-           y = ave_tmp)) + 
-  geom_bar(stat = "identity", 
-           position = position_dodge(), 
-           alpha = 0.8) + 
-  geom_errorbar(aes(ymin = min_tmp, ymax = max_tmp), width = 0.25, position = position_dodge(4.5)) + 
-  scale_x_continuous(breaks = seq(2045, 2065, by = 5)) + 
-  scale_y_continuous(labels = scales::percent_format()) + 
-  theme_minimal() + 
-  theme(
-    legend.position = "none", 
-    axis.text.x = element_text(angle = 90, size = 8, vjust = 0.4), 
-    axis.title = element_blank()
-  ) + 
-  facet_wrap(~ diet_plan, nrow = 1)
-
-p_pos_curv_res <- ggplot(Pos_curv_res, 
-       aes(x = target_year, 
-           y = ave_tmp)) + 
-  geom_bar(stat = "identity", 
-           position = position_dodge(), 
-           alpha = 0.8) + 
-  geom_errorbar(aes(ymin = min_tmp, ymax = max_tmp), width = 0.25, position = position_dodge(4.5)) + 
-  scale_x_continuous(breaks = seq(2045, 2065, by = 5)) + 
-  scale_y_continuous(labels = scales::percent_format()) + 
-  theme_minimal() + 
-  theme(
-    legend.position = "none", 
-    axis.text.x = element_text(angle = 90, size = 8, vjust = 0.4), 
-    axis.title = element_blank()
-  ) + 
-  facet_wrap(~ diet_plan, nrow = 1)
-# + 
-#   coord_cartesian(ylim = c(0, 0.2))
-
-p_neg_curv_res <- ggplot(Neg_curv_res, 
-       aes(x = target_year, 
-           y = ave_tmp)) + 
-  geom_bar(stat = "identity", 
-           position = position_dodge(), 
-           alpha = 0.8) + 
-  geom_errorbar(aes(ymin = min_tmp, ymax = max_tmp), width = 0.25, position = position_dodge(4.5)) + 
-  scale_x_continuous(breaks = seq(2045, 2065, by = 5)) + 
-  scale_y_continuous(labels = scales::percent_format()) + 
-  theme_minimal() + 
-  theme(
-    legend.position = "none", 
-    axis.text.x = element_text(angle = 90, size = 8, vjust = 0.4), 
-    axis.title = element_blank()
-  ) + 
-  facet_wrap(~ diet_plan, nrow = 1)
-
-cowplot::plot_grid(p_pos_rate_res, p_neg_rate_res, ncol = 1)
-cowplot::plot_grid(p_pos_curv_res, p_neg_curv_res, ncol = 1)
-
-```
-
-Projections
-
-```{r}
-# food_pathways_combined <- food_pathways_2045 %>% 
-#   dplyr::bind_cols(target_year = 2045) %>% 
-#   dplyr::bind_rows(food_pathways_2050 %>% 
-#   dplyr::bind_cols(target_year = 2050)) %>% 
-#   dplyr::bind_rows(food_pathways_2055 %>% 
-#   dplyr::bind_cols(target_year = 2055)) %>% 
-#   dplyr::bind_rows(food_pathways_2060 %>% 
-#   dplyr::bind_cols(target_year = 2060)) %>% 
-#   dplyr::bind_rows(food_pathways_2065 %>% 
-#   dplyr::bind_cols(target_year = 2065))
-
-food_pathways_combined <- Food_pathways
-```
-
-```{r}
-food_pathways_target <- food_pathways_combined %>%
-  dplyr::filter(year > 2022) %>%
-  dplyr::mutate(pathway = ifelse(year <= target_year, TRUE, FALSE)) %>%
-  dplyr::filter(pathway == TRUE)
-```
-
-```{r}
-food_pathways_curves <- food_pathways_target %>% 
-  dplyr::select(-pathway) %>% 
-  dplyr::group_by(model_group, iso_alpha3, diet_plan, scenario, target_year) %>% 
-  dplyr::arrange(year) %>% 
-  dplyr::mutate(kt_yr = tonnes_yr*1e-3) %>% 
-  dplyr::mutate(diff1 = kt_yr - lag(kt_yr, 1L), 
-                diff2 = diff1 - lag(diff1, 1L)) %>% 
-  dplyr::ungroup() %>% 
-  tidyr::drop_na()
-```
-
-```{r}
-food_pathways_curves_regions <- food_pathways_curves %>% 
-  dplyr::left_join(loc_map_reduced) %>% 
-  tidyr::drop_na()
-```
-
-```{r}
-library(RColorBrewer)
-```
-
-```{r}
-threshold_curv = 600
-scenar = "SSP2"
-
-targ_yrs <- c(2050, 2055, 2060, 2065) #, 2060, 2065
-curv_palette <- brewer.pal(name="Oranges", n=12)[5:9]
-
-p_curv_pos <- ggplot(
-  data = food_pathways_curves %>%
-    dplyr::filter(diff2 >= 0, target_year %in% targ_yrs) %>%
-    dplyr::filter(scenario == scenar, abs(diff2) > threshold_curv),
-  mapping = aes(
-    x = diff2,
-    fill = as.factor(target_year),
-    colour = as.factor(target_year)
-  ),
-  alpha = 0.5,
-  size = 1.2
-) +
-  geom_vline(
-    xintercept = threshold_curv,
-    linetype = 2,
-    colour = "firebrick",
-    alpha = 0.5
-  ) +
-  geom_density() +
-  scale_fill_manual(values = curv_palette) +
-  scale_color_manual(values = curv_palette) +
-  theme_minimal() +
-  theme(
-    legend.title = element_blank(),
-    legend.position = "top",
-    axis.text.x = element_text(angle = 90,
-                               size = 7)
-  ) +
-  labs(subtitle = "positive curvature",
-       x = "curvature (kt/yr/yr)",
-       y = "density") +
-  facet_wrap( ~ diet_plan) +
-  coord_cartesian(xlim = c(threshold_curv, 6000), ylim = c(0, 0.0011))
-
-p_curv_legend <- cowplot::get_legend(p_curv_pos)
-
-p_curv_pos <- p_curv_pos +
-  geom_density(
-    data = food_curv_regions %>%
-      dplyr::filter(diff2 > 0) %>%
-      dplyr::filter(abs(diff2) > threshold_curv),
-    mapping = aes(x = diff2),
-    inherit.aes = FALSE
-  ) +
-  theme(legend.position = "none")
-
-p_curv_neg <- ggplot(data = food_pathways_curves %>% 
-         dplyr::filter(diff2 < 0) %>% 
-  dplyr::filter(scenario == scenar, abs(diff2) > threshold_curv, target_year %in% targ_yrs), 
-aes(x = diff2, 
-    fill = as.factor(target_year), 
-    colour = as.factor(target_year))) + 
-  geom_vline(xintercept = -threshold_curv, 
-             linetype = 2, 
-             colour = "firebrick", 
-             alpha = 0.5) + 
-  geom_density() +
-  geom_density(
-    data = food_curv_regions %>%
-      dplyr::filter(diff2 < 0) %>%
-      dplyr::filter(abs(diff2) > threshold_curv),
-    mapping = aes(x = diff2),
-    inherit.aes = FALSE
-  ) + 
-  scale_fill_manual(values = curv_palette) + 
-  scale_color_manual(values = curv_palette) + 
-  scale_x_reverse() + 
-  theme_minimal() + 
-  theme(
-    legend.position = "none", 
-    axis.text.x = element_text(angle = 90, 
-                               size = 7)
-  ) + 
-  labs(
-    subtitle = "negative curvature", 
-    x = "curvature (kt/yr/yr)", 
-    y = "density"
-  ) + 
-  facet_wrap(~diet_plan) +
-  coord_cartesian(xlim = c(-threshold_curv, -6000), ylim = c(0, 0.0011))
-
-cowplot::plot_grid(p_curv_legend, p_curv_pos, p_curv_neg, nrow = 3, rel_heights = c(0.2,1,1))
-```
-
-```{r}
-threshold_rate = 4000
-scenar = "SSP1"
-
-rate_palette <- brewer.pal(name="Purples", n=12)[5:9]
-
-p_rate_pos <- ggplot(data = food_pathways_curves %>% 
-         dplyr::filter(diff1 >= 0) %>% 
-  dplyr::filter(scenario == scenar, abs(diff1) > threshold_rate), 
-  mapping = aes(x = diff1, 
-    fill = as.factor(target_year), 
-    colour = as.factor(target_year)), 
-    alpha = 0.5, 
-               size = 1.2) + 
-  geom_vline(
-    xintercept = threshold_rate,
-    linetype = 2,
-    colour = "firebrick",
-    alpha = 0.5
-  ) + 
-  geom_density() + 
-  scale_fill_manual(values = rate_palette) + 
-  scale_color_manual(values = rate_palette) + 
-  theme_minimal() + 
-  theme(
-    legend.title = element_blank(), 
-    legend.position = "top", 
-    axis.text.x = element_text(angle = 90, 
-                               size = 7)
-  ) + 
-  labs(
-    subtitle = "positive growth rate", 
-    x = "growth rate (kt/yr)", 
-    y = "density"
-  ) + 
-  facet_wrap(~diet_plan)
-
-p_rate_legend <- cowplot::get_legend(p_rate_pos)
-
-p_rate_pos <- p_rate_pos +
-  geom_density(
-    data = food_curv_regions %>%
-      dplyr::filter(diff1 > 0) %>%
-      dplyr::filter(abs(diff1) > threshold_rate),
-    mapping = aes(x = diff1),
-    inherit.aes = FALSE
-  ) +
-  theme(legend.position = "none")
-
-p_rate_neg <- ggplot(data = food_pathways_curves %>% 
-         dplyr::filter(diff1 < 1) %>% 
-  dplyr::filter(scenario == scenar, abs(diff1) > threshold_rate), 
-aes(x = diff1, 
-    fill = as.factor(target_year), 
-    colour = as.factor(target_year))) + 
-  geom_vline(xintercept = -threshold_rate, 
-             linetype = 2, 
-             colour = "firebrick", 
-             alpha = 0.5) + 
-  geom_density(alpha = 0.5, 
-               size = 1.2) +
-  geom_density(
-    data = food_curv_regions %>%
-      dplyr::filter(diff1 < 0) %>%
-      dplyr::filter(abs(diff1) > threshold_rate),
-    mapping = aes(x = diff1),
-    inherit.aes = FALSE
-  ) + 
-  scale_fill_manual(values = rate_palette) + 
-  scale_color_manual(values = rate_palette) + 
-  scale_x_reverse() + 
-  theme_minimal() + 
-  theme(
-    legend.position = "none", 
-    axis.text.x = element_text(angle = 90, 
-                               size = 7)
-  ) + 
-  labs(
-    subtitle = "negative growth rate", 
-    x = "growth rate (kt/yr)", 
-    y = "density"
-  ) + 
-  facet_wrap(~diet_plan)
-
-cowplot::plot_grid(p_rate_legend, p_rate_pos, p_rate_neg, nrow = 3, rel_heights = c(0.2,1,1))
-```
-
-Curvature data
-
-```{r}
-
-curv_palette_year_map <- data.frame(
-  target_year = c(2045, 2050, 2055, 2060, 2065), 
-  colour = c("#FD8D3C", "#F16913", "#D94801", "#A63603", "#7F2704")
-)
-
-p_rate_pos_data <- ggplot_build(p_rate_pos_fao)
-p_rate_neg_data <- ggplot_build(p_rate_neg_fao)
-
-curv_pos_pathways_data <- p_curv_pos_data$data[[2]] %>%
-  dplyr::select(colour, y, x, PANEL) %>%
-  dplyr::mutate(type = "proj", 
-                x = round(x), 
-                path_density = y) %>%
-  dplyr::mutate(diet_plan = ifelse(PANEL == 1,
-                                   "CNS-CFP",
-                                   ifelse(PANEL == 2,
-                                          "ELA-PHD",
-                                          "FDA-SDP"))) %>% 
-  dplyr::full_join(curv_palette_year_map) %>% 
-  dplyr::select(x, path_density, diet_plan, target_year)
-
-curv_neg_pathways_data <- p_curv_neg_data$data[[2]] %>%
-  dplyr::select(colour, y, x, PANEL) %>%
-  dplyr::mutate(type = "proj", 
-                x = round(x), 
-                path_density = y) %>%
-  dplyr::mutate(diet_plan = ifelse(PANEL == 1,
-                                   "CNS-CFP",
-                                   ifelse(PANEL == 2,
-                                          "ELA-PHD",
-                                          "FDA-SDP"))) %>% 
-  dplyr::full_join(curv_palette_year_map) %>% 
-  dplyr::select(x, path_density, diet_plan, target_year)
-
-curv_pos_fao_data <- p_curv_pos_data$data[[3]] %>%
-  dplyr::select(y, x) %>%
-  dplyr::mutate(type = "fao_data", 
-                x = round(x), 
-                fao_density = y) %>% 
-  dplyr::select(x, fao_density)
-
-curv_neg_fao_data <- p_curv_neg_data$data[[3]] %>%
-  dplyr::select(y, x) %>%
-  dplyr::mutate(type = "fao_data", 
-                x = round(x), 
-                fao_density = y) %>% 
-  dplyr::select(x, fao_density)
-
-curv_pos_surplus_densities <- curv_pos_fao_data %>% 
-  dplyr::full_join(curv_pos_pathways_data) %>% 
-  dplyr::mutate(surplus_density = path_density - fao_density) %>% 
-  dplyr::arrange(x)
-
-curv_neg_surplus_densities <- curv_neg_fao_data %>% 
-  dplyr::full_join(curv_neg_pathways_data) %>% 
-  dplyr::mutate(surplus_density = path_density - fao_density) %>% 
-  dplyr::arrange(x)
-
-```
-
-Check that areas are normalised to 0.
-
-```{r, echo = FALSE}
-test <- curv_pos_surplus_densities %>% 
-  tidyr::drop_na() %>% 
-  dplyr::group_by(diet_plan, target_year) %>% 
-  dplyr::summarise(dens = sum(surplus_density), 
-                   .groups = "drop")
-
-#test
-```
-
-Checks out.
-
-Pathway residues: the
-
-```{r}
-pos_residues <- curv_pos_surplus_densities %>% 
-  dplyr::filter(surplus_density >= 0) %>% 
-  dplyr::group_by(diet_plan, target_year) %>% 
-  dplyr::summarise(residues = sum(surplus_density), 
-                   .groups = "drop") %>% 
-  dplyr::arrange(-(residues))
-
-neg_residues <- curv_neg_surplus_densities %>% 
-  dplyr::filter(surplus_density >= 0) %>% 
-  dplyr::group_by(diet_plan, target_year) %>% 
-  dplyr::summarise(residues = sum(surplus_density), 
-                   .groups = "drop") %>% 
-  dplyr::arrange(-(residues))
-```
-
-```{r}
-
-# cols <- data.frame(
-#   food = "#EEAF35", 
-#   feed = "#F17EB8"
-# )
-# labz <- c("food", "feed")
-
-p_res1 <- ggplot(data = pos_residues,
-                 aes(x = target_year,
-                     y = residues)) +
-  geom_col(aes(fill = diet_plan), position = "dodge", alpha = 0.95) +
-  geom_hline(yintercept = 0, alpha = 0.8) +
-  theme_minimal() +
-  scale_y_continuous(labels = scales::percent_format(accuracy = 0.01)) +
-  theme(
-    legend.position = "bottom",
-    legend.title = element_blank(),
-    axis.title = element_text(size = 8),
-    axis.title.x = element_blank(),
-    panel.grid.major.y = element_line(colour = "grey"),
-    panel.grid.minor.y = element_line(colour = "grey")
-  ) +
-  labs(title = "Positive curvatures outside the historical envelope",
-       x = "Dietary achievement target year",
-       y = "Positive pathway curvature residues") +
-  coord_cartesian(ylim = c(0, 0.034))
-
-
-p_res_legend_only <- cowplot::get_legend(p_res1)
-
-p_res1 <- p_res1 +
-  theme(legend.position = "none")
-
-p_res2 <- ggplot(data = neg_residues,
-                 aes(x = target_year,
-                     y = residues)) +
-  geom_col(aes(fill = diet_plan), position = "dodge", alpha = 0.95) +
-  geom_hline(yintercept = 0, alpha = 0.8) +
-  theme_minimal() +
-  scale_y_continuous(labels = scales::percent_format(accuracy = 0.01)) +
-  theme(
-    legend.position = "none",
-    legend.title = element_blank(),
-    axis.title = element_text(size = 8),
-    panel.grid.major.y = element_line(colour = "grey"),
-    panel.grid.minor.y = element_line(colour = "grey")
-  ) +
-  labs(title = "Negative curvatures outside the historical envelope",
-       x = "Dietary achievement target year",
-       y = "Negative pathway curvature residues") +
-  coord_cartesian(ylim = c(0, 0.034))
-
-cowplot::plot_grid(
-  p_res1,
-  p_res2,
-  p_res_legend_only,
-  ncol = 1,
-  rel_heights = c(1, 1, 0.2)
-)
-
-```
-
-```{r}
-
-p_curv_pos_exceedance <- ggplot(curv_pos_surplus_densities,
-                                aes(x = x,
-                                    y = surplus_density)) +
-  geom_line(aes(colour = as.factor(target_year)),
-            alpha = 0.5,
-            size = 1.2) +
-  geom_hline(yintercept = 0) +
-  scale_color_manual(values = curv_palette) +
-  theme_minimal() +
-  theme(
-    legend.title = element_blank(),
-    legend.position = "top",
-    axis.text.x = element_text(angle = 90,
-                               size = 7)
-  ) +
-  labs(subtitle = "positive curvature exceedance over historical curvature",
-       x = "curvature (kt/yr/yr)",
-       y = "pathway exceedance") +
-  facet_wrap( ~ diet_plan) +
-  coord_cartesian(xlim = c(0, 7500))
-
-p_curv_exceedance_legend <-
-  cowplot::get_legend(p_curv_pos_exceedance)
-
-p_curv_pos_exceedance <- p_curv_pos_exceedance +
-  theme(legend.position = "none")
-
-p_curv_neg_exceedance <- ggplot(curv_neg_surplus_densities,
-                                aes(x = x,
-                                    y = surplus_density)) +
-  geom_line(aes(colour = as.factor(target_year)),
-            alpha = 0.5,
-            size = 1.2) +
-  geom_hline(yintercept = 0) +
-  scale_color_manual(values = curv_palette) +
-  scale_x_reverse() +
-  theme_minimal() +
-  theme(
-    legend.title = element_blank(),
-    legend.position = "none",
-    axis.text.x = element_text(angle = 90,
-                               size = 7)
-  ) +
-  labs(subtitle = "negative curvature exceedance over historical curvature",
-       x = "curvature (kt/yr/yr)",
-       y = "pathway exceedance") +
-  facet_wrap( ~ diet_plan) +
-  coord_cartesian(xlim = c(0, 7500))
-
-cowplot::plot_grid(
-  p_curv_exceedance_legend,
-  p_curv_pos_exceedance,
-  p_curv_neg_exceedance,
-  nrow = 3,
-  rel_heights = c(0.2, 1, 1)
-)
-
-```
-
-Rate data
-
-```{r}
-
-rate_palette_year_map <- data.frame(
-  target_year = c(2045, 2050, 2055, 2060, 2065), 
-  colour = c("#9E9AC8", "#807DBA", "#6A51A3", "#54278F", "#3F007D")
-)
-
-p_rate_pos_data <- ggplot_build(p_rate_pos)
-p_rate_neg_data <- ggplot_build(p_rate_neg)
-
-rate_pos_pathways_data <- p_rate_pos_data$data[[2]] %>%
-  dplyr::select(colour, y, x, PANEL) %>%
-  dplyr::mutate(type = "proj", 
-                x = round(x), 
-                path_density = y) %>%
-  dplyr::mutate(diet_plan = ifelse(PANEL == 1,
-                                   "CNS-CFP",
-                                   ifelse(PANEL == 2,
-                                          "ELA-PHD",
-                                          "FDA-SDP"))) %>% 
-  dplyr::full_join(rate_palette_year_map) %>% 
-  dplyr::select(x, path_density, diet_plan, target_year)
-
-rate_neg_pathways_data <- p_rate_neg_data$data[[2]] %>%
-  dplyr::select(colour, y, x, PANEL) %>%
-  dplyr::mutate(type = "proj", 
-                x = -round(x), 
-                path_density = y) %>%
-  dplyr::mutate(diet_plan = ifelse(PANEL == 1,
-                                   "CNS-CFP",
-                                   ifelse(PANEL == 2,
-                                          "ELA-PHD",
-                                          "FDA-SDP"))) %>% 
-  dplyr::full_join(rate_palette_year_map) %>% 
-  dplyr::select(x, path_density, diet_plan, target_year)
-
-rate_pos_fao_data <- p_rate_pos_data$data[[3]] %>%
-  dplyr::select(y, x) %>%
-  dplyr::mutate(type = "fao_data", 
-                x = round(x), 
-                fao_density = y) %>% 
-  dplyr::select(x, fao_density)
-
-rate_neg_fao_data <- p_rate_neg_data$data[[3]] %>%
-  dplyr::select(y, x) %>%
-  dplyr::mutate(type = "fao_data", 
-                x = -round(x), 
-                fao_density = y) %>% 
-  dplyr::select(x, fao_density)
-
-rate_pos_surplus_densities <- rate_pos_fao_data %>% 
-  dplyr::full_join(rate_pos_pathways_data) %>% 
-  dplyr::mutate(surplus_density = path_density - fao_density) %>% 
-  dplyr::arrange(x)
-
-rate_neg_surplus_densities <- rate_neg_fao_data %>% 
-  dplyr::full_join(rate_neg_pathways_data) %>% 
-  dplyr::mutate(surplus_density = path_density - fao_density) %>% 
-  dplyr::arrange(x)
-
-```
-
-```{r}
-
-p_rate_pos_exceedance <- ggplot(rate_pos_surplus_densities,
-                                aes(x = x,
-                                    y = surplus_density)) +
-  geom_line(aes(colour = as.factor(target_year)),
-            alpha = 0.5,
-            size = 1.2) +
-  geom_hline(yintercept = 0) +
-  scale_color_manual(values = rate_palette) +
-  theme_minimal() +
-  theme(
-    legend.title = element_blank(),
-    legend.position = "top",
-    axis.text.x = element_text(angle = 90,
-                               size = 7)
-  ) +
-  labs(subtitle = "positive growth exceedance over historical growth rate",
-       x = "growth rate (kt/yr)",
-       y = "pathway exceedance") +
-  facet_wrap( ~ diet_plan)
-
-p_rate_exceedance_legend <-
-  cowplot::get_legend(p_rate_pos_exceedance)
-
-p_rate_pos_exceedance <- p_rate_pos_exceedance +
-  theme(legend.position = "none")
-
-p_rate_neg_exceedance <- ggplot(rate_neg_surplus_densities,
-                                aes(x = x,
-                                    y = surplus_density)) +
-  geom_line(aes(colour = as.factor(target_year)),
-            alpha = 0.5,
-            size = 1.2) +
-  geom_hline(yintercept = 0) +
-  scale_color_manual(values = rate_palette) +
-  scale_x_reverse() +
-  theme_minimal() +
-  theme(
-    legend.title = element_blank(),
-    legend.position = "none",
-    axis.text.x = element_text(angle = 90,
-                               size = 7)
-  ) +
-  labs(subtitle = "negative growth exceedance over historical growth rate",
-       x = "growth rate (kt/yr)",
-       y = "pathway exceedance") +
-  facet_wrap( ~ diet_plan)
-
-cowplot::plot_grid(
-  p_rate_exceedance_legend,
-  p_rate_pos_exceedance,
-  p_rate_neg_exceedance,
-  nrow = 3,
-  rel_heights = c(0.2, 1, 1)
-)
-
-```
