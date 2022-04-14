@@ -967,11 +967,18 @@ p2a <- ggplot(
        x = "kcal/cap/day", 
        y = "number of countries in the region")
 
+
+grDevices::jpeg(filename = "Plots/figure_S1b.jpg", 
+               width = 750, 
+               height = 500, 
+               units = "px", 
+               quality = 1)
 p2a
+dev.off()
 
 ```
 
-According to the FAO numbers, only countries in North America, Europe, Australia and New Zealand, and one or two representatives in Latin America and the Caribbean, South-East Asia, and Central Asia are acquiring sufficient daily calories to be healthful.
+
 
 ```{r}
 
@@ -1011,7 +1018,66 @@ knitr::kable(n_df, caption = "Number of countries in each region")
 
 ```
 
-If FAO DER does not change between now and 2050, the deficit will look like:
+If FAO DER remains the same, the future deficit will look like:
+```{r}
+der_fao_2020 <- der_fao %>% 
+  dplyr::filter(year == 2020) %>% 
+  tidyr::drop_na() %>% 
+  dplyr::select(-countryname, -year)
+
+der_ssp0 <- ssp2_kcal_edu %>%
+  dplyr::group_by(SCENARIO, REGION, year) %>% 
+  dplyr::summarise(total_pop = sum(millions),
+                   .groups = "drop") %>%
+  dplyr::ungroup() %>%
+  dplyr::full_join(ssp2_kcal_edu) %>%
+  dplyr::mutate(weighting = (millions / total_pop),
+                wtd_mean = kcal_mean * weighting) %>%
+  dplyr::group_by(SCENARIO, REGION, year) %>%
+  dplyr::summarise(der_ave = sum(wtd_mean),
+                   .groups = "drop") %>%
+  dplyr::filter(year %in% c(2020, 2050, 2075))
+
+der_def <- der_fao_2020 %>% 
+  dplyr::full_join(der_ssp0) %>% 
+  dplyr::mutate(der_deficit = DER_FAO - der_ave) %>% 
+  dplyr::full_join(regions_map) %>% 
+  dplyr::select(-Unit, -DER_FAO, -subregionname, -der_ave, -countryname) %>% 
+  tidyr::drop_na(region)
+
+```
+
+Order the regions by DER deficit.
+```{r}
+der_def <- der_def %>% 
+  dplyr::mutate(region_f = region)
+
+der_def$region_f <- factor(der_def$region_f, levels = c("South Asia", "Africa", "Oceania", "Southeast Asia", "South America", "Central Asia and Russia", "Latin America and Caribbean", "MENA", "East Asia", "Europe", "Australia and New Zealand", "North America"))
+
+```
+
+
+```{r}
+ggplot(data = der_def,
+       mapping = aes(x = region_f,
+                     y = der_deficit)) + 
+  geom_hline(yintercept = 0, alpha = 0.9) + 
+  geom_boxplot(mapping = aes(fill = as.factor(year)), 
+               position = "dodge") + 
+  theme_minimal() + 
+  theme(
+    legend.position = "top", 
+    legend.title = element_blank(), 
+    panel.grid.major.x = element_blank(), 
+    panel.grid.minor.x = element_blank(), 
+    axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.9)
+  ) + 
+  labs(
+    y = "kcal/cap/day"
+  )
+```
+
+
 ```{r}
 der_fao_2020 <- der_fao %>% 
   dplyr::filter(year == 2020) %>% 

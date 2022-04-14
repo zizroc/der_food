@@ -595,10 +595,18 @@ p3c <- ggplot(
   facet_wrap(~ year)
 ```
 
+
+
 ```{r}
 
 cowplot::plot_grid(p3a, p3b, p3c, p3_legend_only, ncol = 1, rel_heights = c(1, 0.8, 0.9, 0.2))
-
+grDevices::jpeg(filename = "Plots/figure_3.jpg", 
+               width = 750, 
+               height = 500, 
+               units = "px", 
+               quality = 1)
+cowplot::plot_grid(p3a, p3b, p3c, p3_legend_only, ncol = 1, rel_heights = c(1, 0.8, 0.9, 0.2))
+dev.off()
 ```
 
 ```{r}
@@ -1060,12 +1068,12 @@ adapt_arrow <- ggplot(data = data.frame(x = c(0,1), y = c(0,1)),
 ```{r}
 
 # p2 <- cowplot::plot_grid(p2a, p2b, p2c, p2d, p2e, p2_legend_only)
-pa <- plot_grid(p2e, p2a, ncol = 1)
-pb <- plot_grid(p2_legend_only, p2b, NA, ncol = 1, rel_heights = c(0.5, 1, 0.5))
-pc <- plot_grid(p2c, p2d, ncol = 1)
-
-p2 <- cowplot::plot_grid(pa, pb, pc, ncol = 3)
-cowplot::plot_grid(mitigate_arrow, p2, NA, adapt_arrow, ncol = 2, rel_widths = c(0.1, 0.9), rel_heights = c(0.9, 0.1))
+# pa <- plot_grid(p2e, p2a, ncol = 1)
+# pb <- plot_grid(p2_legend_only, p2b, NA, ncol = 1, rel_heights = c(0.5, 1, 0.5))
+# pc <- plot_grid(p2c, p2d, ncol = 1)
+# 
+# p2 <- cowplot::plot_grid(pa, pb, pc, ncol = 3)
+# cowplot::plot_grid(mitigate_arrow, p2, NA, adapt_arrow, ncol = 2, rel_widths = c(0.1, 0.9), rel_heights = c(0.9, 0.1))
 ```
 
 ```{r}
@@ -1277,10 +1285,19 @@ pb <- plot_grid(p3_legend_only, p3b, NA, ncol = 1, rel_heights = c(0.5, 1, 0.5))
 pc <- plot_grid(p3c, p3d, ncol = 1)
 
 p3 <- cowplot::plot_grid(pa, pb, pc, ncol = 3)
+
+grDevices::jpeg(filename = "Plots/figure_S4.jpg", 
+               width = 750, 
+               height = 500, 
+               units = "px", 
+               quality = 1)
 cowplot::plot_grid(mitigate_arrow, p3, NA, adapt_arrow, ncol = 2, rel_widths = c(0.1, 0.9), rel_heights = c(0.9, 0.1))
+
+dev.off()
 
 # p3 <- cowplot::plot_grid(p3a, p3b, p3c, p3d, p3e, p3_legend_only)
 # p3
+
 ```
 
 Relative change.
@@ -1490,6 +1507,14 @@ pc <- plot_grid(p4c, p4d, ncol = 1)
 
 p3 <- cowplot::plot_grid(pa, pb, pc, ncol = 3)
 cowplot::plot_grid(mitigate_arrow, p3, NA, adapt_arrow, ncol = 2, rel_widths = c(0.1, 0.9), rel_heights = c(0.9, 0.1))
+
+grDevices::jpeg(filename = "Plots/figure_S3b.jpg", 
+               width = 750, 
+               height = 500, 
+               units = "px", 
+               quality = 1)
+cowplot::plot_grid(mitigate_arrow, p3, NA, adapt_arrow, ncol = 2, rel_widths = c(0.1, 0.9), rel_heights = c(0.9, 0.1))
+dev.off()
 
 # p3 <- cowplot::plot_grid(p3a, p3b, p3c, p3d, p3e, p3_legend_only)
 # p3
@@ -2885,7 +2910,7 @@ p2_neg <- ggplot(Food_feed_pathways_curves %>%
 
 
 cowplot::plot_grid(p2_pos, p2_neg, p2_leg, ncol = 1, rel_heights = c(0.45, 0.45, 0.1)) 
-grDevices::jpeg(filename = "Plots/figure_6_SI.jpg", 
+grDevices::jpeg(filename = "Plots/figure_S6.jpg", 
                width = 800, 
                height = 500, 
                units = "px", 
