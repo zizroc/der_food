@@ -791,6 +791,148 @@ p3 <- cowplot::plot_grid(p3a, p3b, p3c, p3d, p3e, p3_legend_only)
 p3
 ```
 
+Historic (FAO) food/feed supply for 2018.
+```{r}
+# diet_diffs
+fao_food_feed_supply <- food_feed_grouped_data %>% 
+  dplyr::filter(year == 2018) %>% 
+  dplyr::group_by(crop_class) %>% 
+  dplyr::summarise(t_yr_2018 = sum(tonnes_yr, na.rm = TRUE), 
+                   .groups = "drop")
+
+ssp_food_feed_demand <- global_crop_demand_food_feed_diff %>%
+  dplyr::group_by(SCENARIO, year, diet_plan, crop_class) %>%
+  dplyr::summarise(t_yr = sum(tonnes_yr, na.rm = TRUE),
+                   .groups = "drop") %>%
+  dplyr::mutate(scenario = ifelse(
+    SCENARIO == "SSP1_v9_130115",
+    "SSP1",
+    ifelse(
+      SCENARIO == "SSP2_v9_130115",
+      "SSP2",
+      ifelse(
+        SCENARIO == "SSP3_v9_130115",
+        "SSP3",
+        ifelse(
+          SCENARIO == "SSP4d_v9_130115",
+          "SSP4",
+          ifelse(SCENARIO == "SSP5_v9_130115",
+                 "SSP5",
+                 NA)
+        )
+      )
+    )
+  )) %>%
+  dplyr::mutate(diet_plan = ifelse(
+    diet_plan == "ELA-PHD",
+    "ELA",
+    ifelse(
+      diet_plan == "CNS-CFP",
+      "CNS",
+      ifelse(diet_plan == "FDA-SDP",
+             "USDA", 
+             NA)
+    )
+  )) %>%
+  dplyr::select(-SCENARIO)
+```
+
+```{r}
+ssp_food_feed_demand$diet_plan_f <- factor(ssp_food_feed_demand$diet_plan, levels = c("ELA", "CNS", "USDA"))
+```
+
+
+```{r}
+future_food_feed_demand_diff <- ssp_food_feed_demand %>% 
+  dplyr::left_join(fao_food_feed_supply) %>% 
+  dplyr::mutate(t_yr_diff = t_yr-t_yr_2018)
+```
+
+```{r}
+cols <- data.frame(
+  food = scales::muted("green"), 
+  feed = scales::muted("magenta")
+)
+labz <- c("food for humans", "feed for animals")
+
+p_food_feed <- ggplot(data = future_food_feed_demand_diff %>% 
+         dplyr::filter(year >= 2020), 
+       mapping = aes(x = year, 
+                     y = t_yr_diff*1e-9)) + 
+  geom_hline(yintercept = 0, alpha = 0.9) + 
+  geom_area(aes(fill = crop_class), 
+            position = "stack", 
+            alpha = 0.7) + 
+  scale_fill_manual(values = cols, 
+                    labels = labz) + 
+  theme_bw() + 
+  theme(
+    legend.position = "top", 
+    legend.title = element_blank(), 
+    legend.text = element_text(size = 12), 
+    axis.text.x = element_text(angle = 90, hjust = 0.9, vjust = 0.5, size = 12), 
+    axis.text.y = element_text(size = 12), 
+    axis.title.y = element_text(size = 12), 
+    axis.title.x = element_blank(), 
+    panel.grid.major.x = element_blank(), 
+    panel.grid.minor.x = element_blank(), 
+    strip.text = element_text(size = 14)
+  ) + 
+  labs(
+    title = "Projected increase in global food and feed demand above 2018 supply", 
+    y = "Gt/year"
+  ) + 
+  facet_grid(diet_plan_f ~ scenario)
+# + 
+#   scale_x_binned(breaks = seq(2020, 2100, by = 20), 
+#                  labels = seq(2020, 2100, by = 20))
+
+grDevices::jpeg(filename = "Plots/figure_S3a.jpg", 
+               width = 750, 
+               height = 500, 
+               units = "px", 
+               quality = 1)
+p_food_feed
+dev.off()
+p_food_feed
+```
+
+Read maxima and minima for these explicitly.
+```{r}
+tmp <- future_food_feed_demand_diff %>%
+  dplyr::group_by(scenario, year, diet_plan) %>%
+  dplyr::summarise(t_yr_diff = sum(t_yr_diff, na.rm = TRUE),
+                   .groups = "drop")
+
+tmp1 <- tmp %>%
+  dplyr::filter(year == 2050) %>%
+  dplyr::pull(t_yr_diff) %>%
+  max(.) * 1e-9
+
+tmp2 <- tmp %>%
+  dplyr::filter(year == 2050) %>%
+  dplyr::pull(t_yr_diff) %>%
+  min(.) * 1e-9
+
+tmp3 <- tmp %>%
+  dplyr::filter(year == 2075) %>%
+  dplyr::pull(t_yr_diff) %>%
+  max(.) * 1e-9
+
+tmp4 <- tmp %>%
+  dplyr::filter(year == 2075) %>%
+  dplyr::pull(t_yr_diff) %>%
+  min(.) * 1e-9
+
+out <- tibble(
+  value_diff = c("max","min","max","min"),
+  year = c(2050,2050,2075,2075), 
+  t_yr_diff = c(tmp1,tmp2,tmp3,tmp4)
+)
+out
+```
+
+Test this. Find differences between the projected demand and FAO supply.
 ```{r}
 tmp1 <- food_feed_grouped_data %>% 
   dplyr::group_by(area, year, crop_class) %>% 
@@ -805,38 +947,17 @@ tmp2 <- global_crop_demand_food_feed_diff %>%
 
 tmp3 <- full_join(tmp1, tmp2)
 
-ggplot(tmp1,  
-      aes(x = year, y = tonnes_yr)) + 
-  geom_col(aes(fill = crop_class), position = "stack") + 
-  coord_cartesian(ylim = c(0, 1.2e10))
-
-ggplot(tmp2 %>% 
-        dplyr::filter(diet_plan_f == "ELA-PHD", SCENARIO == "SSP3_v9_130115"), 
-      aes(x = year, y = tonnes_yr)) + 
-  geom_col(aes(fill = crop_class), position = "stack") + 
-  coord_cartesian(ylim = c(0, 1.2e10))
-
-ggplot(tmp3 %>% 
-         dplyr::filter(diet_plan_f %in% c("FAO", "FDA-SDP"), SCENARIO == "SSP3_v9_130115"), 
-       aes(x = year, y = tonnes_yr)) + 
-  geom_col(aes(fill = crop_class), position = "stack") + 
-  coord_cartesian(xlim = c(2014, 2100))
-```
-
-```{r}
 diet_diffs <- tmp3 %>% 
   dplyr::mutate(tonnes_yr_2018 = ifelse(year == 2018, tonnes_yr, NA)) %>% 
   dplyr::group_by(crop_class) %>% 
-  tidyr::fill(tonnes_yr_2018) %>% 
+  tidyr::fill(tonnes_yr_2018, 
+              .direction = "updown") %>% 
   dplyr::ungroup() %>% 
   dplyr::filter(year >= 2018) %>% 
   dplyr::mutate(diff = tonnes_yr - tonnes_yr_2018, 
                 pc_diff = diff/tonnes_yr_2018)
 ```
 
-```{r}
-# diet_diffs
-```
 
 ```{r}
 cols <- data.frame(
