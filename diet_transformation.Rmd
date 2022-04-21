@@ -78,8 +78,6 @@ foodbalance_map <- readr::read_csv(
     model_group = col_character()
   )
 )
-
-
 ```
 
 Select only those elements that have to do with food and food supply.
@@ -323,6 +321,20 @@ p2a
 dev.off()
 ```
 
+
+```{r}
+kcal_demand_proj_diff %>% 
+  dplyr::filter(year %in% c(2050, 2075)) %>% 
+  dplyr::select(-Mkcal_demand_day_proj, -population_M, -Mkcal_demand_day_proj_2020, -population_M_2020) %>% 
+  dplyr::group_by(year) %>% 
+  dplyr::summarise(Tkcal_diff_max = max(Tkcal_diff), 
+                   Tkcal_diff_min = min(Tkcal_diff), 
+                   Tkcal_diff_pc_max = max(Tkcal_diff_pc), 
+                   Tkcal_diff_pc_min = min(Tkcal_diff_pc), 
+                   .groups = "drop")
+```
+
+
 To make this clear I'll display the data similarly to the manuscript figures.
 
 ```{r}
@@ -509,7 +521,6 @@ grDevices::jpeg(filename = "Plots/figure_S1d.jpg",
                quality = 1)
 pe
 dev.off()
-
 ```
 
 
@@ -552,7 +563,7 @@ dev.off()
 <!-- ``` -->
 
 
-## Comparison of historical supply to future demand
+# Comparison analysis: historical supply to future demand
 
 How does the supply compare to expected demand in future? 
 
@@ -613,7 +624,7 @@ fao_kcal_diff$diet_plan_f <- factor(fao_kcal_diff$diet_plan_f, levels = c("ELA",
 
 ```
 
-### Caloric demand
+## Caloric demand
 
 Prepare some plot annotations and colour sets.
 
@@ -817,7 +828,7 @@ pc <- plot_grid(p3c, p3d, ncol = 1)
 p3 <- cowplot::plot_grid(pa, pb, pc, ncol = 3)
 cowplot::plot_grid(mitigate_arrow, p3, NA, adapt_arrow, ncol = 2, rel_heights = c(0.9,0.1), rel_widths = c(0.1, 0.9))
 
-grDevices::jpeg(filename = "Plots/figure_S3a.jpg", 
+grDevices::jpeg(filename = "Plots/figure_S2a.jpg", 
                width = 750, 
                height = 500, 
                units = "px", 
@@ -1023,7 +1034,7 @@ pc <- plot_grid(p2c, p2d, ncol = 1)
 p2 <- cowplot::plot_grid(pa, pb, pc, ncol = 3)
 cowplot::plot_grid(mitigate_arrow, p2, NA, adapt_arrow, ncol = 2, rel_heights = c(0.9,0.1), rel_widths = c(0.1, 0.9))
 
-grDevices::jpeg(filename = "Plots/figure_S3b.jpg", 
+grDevices::jpeg(filename = "Plots/figure_S2b.jpg", 
                width = 750, 
                height = 500, 
                units = "px", 
@@ -1031,6 +1042,8 @@ grDevices::jpeg(filename = "Plots/figure_S3b.jpg",
 cowplot::plot_grid(mitigate_arrow, p2, NA, adapt_arrow, ncol = 2, rel_heights = c(0.9,0.1), rel_widths = c(0.1, 0.9))
 dev.off()
 ```
+
+## Plot Figure 3
 
 For better clarity, I aggregate the above data into plots that represent the SSPs by error bars.
 
@@ -1376,6 +1389,388 @@ fao_kcal_diff_ranges %>%
 ```
 
 
+```{r}
+out_fig3 <- fao_kcal_diff %>% 
+  dplyr::filter(diet_plan != "FAO") %>% 
+  dplyr::group_by(SCENARIO, diet_plan, year) %>% 
+  dplyr::summarise(Tkcal_day = sum(M_kcal_per_day * 1e-6), 
+                   Tkcal_day_baseline = sum(M_kcal_per_day_2018 * 1e-6), 
+                   .groups = "drop") %>% 
+  dplyr::mutate(Tkcal_day_diff = Tkcal_day-Tkcal_day_baseline, 
+                Tkcal_day_diff_pc = Tkcal_day_diff/Tkcal_day_baseline) %>% 
+  dplyr::filter(year %in% c(2025, 2050, 2075))
+
+```
+
+
+```{r}
+out_fig3 <- out_fig3 %>% 
+  dplyr::mutate(diet_plan_f = ifelse(diet_plan == "CNS-CFP", 
+                                     "CNS", 
+                                     ifelse(diet_plan == "ELA-PHD", 
+                                            "ELA", 
+                                            ifelse(diet_plan == "FDA-SDP", 
+                                                   "USDA", 
+                                                   NA))))
+out_fig3$diet_plan_f <- factor(out_fig3$diet_plan_f, levels = c("ELA", "CNS", "USDA"))
+```
+
+```{r}
+
+out_fig3_abs <- out_fig3 %>% 
+  dplyr::select(-Tkcal_day_diff_pc) %>% 
+  dplyr::group_by(year) %>% 
+  dplyr::summarise(diff_max = max(Tkcal_day_diff), 
+                   diff_min = min(Tkcal_day_diff), 
+                   .groups = "drop")
+
+out_fig3_pc <- out_fig3 %>% 
+  dplyr::select(-Tkcal_day_diff) %>% 
+  dplyr::group_by(year) %>% 
+  dplyr::summarise(pc_diff_max = max(Tkcal_day_diff_pc), 
+                   pc_diff_min = min(Tkcal_day_diff_pc), 
+                   .groups = "drop")
+
+out_fig3_abs
+out_fig3_pc
+```
+
+```{r}
+ymin <- min(out_fig3_abs$diff_min)
+ymax <- max(out_fig3_abs$diff_max)
+
+p3a <- ggplot(
+  out_fig3 %>%
+    dplyr::filter(SCENARIO == "SSP1_v9_130115"),
+  aes(x = diet_plan_f,
+      y = Tkcal_day_diff)
+) + 
+  geom_col(alpha = 0.8) + 
+  geom_hline(yintercept = 0, alpha = 0.8) +
+  coord_cartesian(ylim = c(ymin, ymax)) +
+  theme_bw() + 
+  theme(
+    axis.text.x = element_text(
+      angle = 90,
+      hjust = 0,
+      vjust = 0.5
+    ),
+    axis.ticks.x = element_blank(),
+    axis.title.x = element_blank(),
+    legend.title = element_blank(), 
+    legend.position = "none", 
+    panel.grid.major.y = element_line(colour = "grey"), 
+    panel.grid.minor.y = element_line(colour = "grey"), 
+    panel.grid.major.x = element_blank(), 
+    panel.grid.minor.x = element_blank(), 
+    axis.title.y = element_text(size = 7)
+  ) +
+  labs(title = "SSP1", y = "Tkcal/day over 2018 supply") +
+  facet_wrap( ~ year)
+
+p3b <- ggplot(
+  out_fig3 %>%
+    dplyr::filter(SCENARIO == "SSP2_v9_130115"),
+   aes(x = diet_plan_f,
+      y = Tkcal_day_diff)
+) +
+  geom_col(alpha = 0.8) + 
+  geom_hline(yintercept = 0, alpha = 0.8) +
+  coord_cartesian(ylim = c(ymin, ymax)) +
+  theme_bw() +
+  theme(
+    axis.text.x = element_text(
+      angle = 90,
+      hjust = 0,
+      vjust = 0.5
+    ),
+    axis.ticks.x = element_blank(),
+    axis.title.x = element_blank(),
+    legend.position = "none", 
+    panel.grid.major.y = element_line(colour = "grey"), 
+    panel.grid.minor.y = element_line(colour = "grey"), 
+    panel.grid.major.x = element_blank(), 
+    panel.grid.minor.x = element_blank(), 
+    axis.title.y = element_blank()
+  ) +
+  labs(title = "SSP2") +
+  facet_wrap( ~ year)
+
+p3c <- ggplot(
+  out_fig3 %>% 
+    dplyr::filter(SCENARIO == "SSP3_v9_130115"),
+  aes(x = diet_plan_f,
+      y = Tkcal_day_diff)
+) +
+  geom_col(alpha = 0.8) + 
+  geom_hline(yintercept = 0, alpha = 0.8) +
+  coord_cartesian(ylim = c(ymin, ymax)) +
+  theme_bw() +
+  theme(
+    axis.text.x = element_text(
+      angle = 90,
+      hjust = 0,
+      vjust = 0.5
+    ),
+    axis.ticks.x = element_blank(),
+    axis.title.x = element_blank(),
+    legend.position = "none", 
+    panel.grid.major.y = element_line(colour = "grey"), 
+    panel.grid.minor.y = element_line(colour = "grey"), 
+    panel.grid.major.x = element_blank(), 
+    panel.grid.minor.x = element_blank(), 
+    axis.title.y = element_blank()
+  ) +
+  labs(title = "SSP3") +
+  facet_wrap( ~ year)
+
+p3d <- ggplot(
+  out_fig3 %>%
+    dplyr::filter(year %in% c(2025, 2050, 2075) &
+                    SCENARIO == "SSP4d_v9_130115"),
+  aes(x = diet_plan_f,
+      y = Tkcal_day_diff)
+) +
+  geom_col(alpha = 0.8) + 
+ geom_hline(yintercept = 0, alpha = 0.8) +
+  coord_cartesian(ylim = c(ymin, ymax)) +
+  theme_bw() +
+  theme(
+    axis.text.x = element_text(
+      angle = 90,
+      hjust = 0,
+      vjust = 0.5
+    ),
+    axis.ticks.x = element_blank(),
+    axis.title.x = element_blank(),
+    legend.position = "none", 
+    panel.grid.major.y = element_line(colour = "grey"), 
+    panel.grid.minor.y = element_line(colour = "grey"), 
+    panel.grid.major.x = element_blank(), 
+    panel.grid.minor.x = element_blank(), 
+    axis.title.y = element_text(size = 7)
+  ) +
+  labs(title = "SSP4", y = "Tkcal/day over 2018 supply") +
+  facet_wrap( ~ year)
+
+p3e <- ggplot(
+  out_fig3 %>%
+    dplyr::filter(SCENARIO == "SSP5_v9_130115"),
+  aes(x = diet_plan_f,
+      y = Tkcal_day_diff)
+) +
+  geom_col(alpha = 0.8) + 
+  geom_hline(yintercept = 0, alpha = 0.8) +
+  coord_cartesian(ylim = c(ymin, ymax)) +
+  theme_bw() + 
+  theme(
+    axis.text.x = element_text(
+      angle = 90,
+      hjust = 0,
+      vjust = 0.5
+    ),
+    axis.ticks.x = element_blank(),
+    axis.title.x = element_blank(),
+    legend.position = "none", 
+    panel.grid.major.y = element_line(colour = "grey"), 
+    panel.grid.minor.y = element_line(colour = "grey"), 
+    panel.grid.major.x = element_blank(), 
+    panel.grid.minor.x = element_blank(), 
+    axis.title.y = element_blank()
+  ) +
+  labs(title = "SSP5") +
+  facet_wrap( ~ year)
+```
+
+
+```{r}
+pa <- plot_grid(p3e, p3a, ncol = 1)
+pb <- plot_grid(NA, p3b, NA, ncol = 1, rel_heights = c(0.5, 1, 0.5))
+pc <- plot_grid(p3c, p3d, ncol = 1)
+
+p3 <- cowplot::plot_grid(pa, pb, pc, ncol = 3)
+cowplot::plot_grid(mitigate_arrow, p3, NA, adapt_arrow, ncol = 2, rel_heights = c(0.9,0.1), rel_widths = c(0.1, 0.9))
+
+# grDevices::jpeg(filename = "Plots/figure_S3c.jpg", 
+#                width = 750, 
+#                height = 500, 
+#                units = "px", 
+#                quality = 1)
+# cowplot::plot_grid(mitigate_arrow, p3, NA, adapt_arrow, ncol = 2, rel_heights = c(0.9,0.1), rel_widths = c(0.1, 0.9))
+# dev.off()
+```
+
+```{r}
+ymin <- min(out_fig3_pc$pc_diff_min)
+ymax <- max(out_fig3_pc$pc_diff_max)
+
+p3a <- ggplot(
+  out_fig3 %>%
+    dplyr::filter(SCENARIO == "SSP1_v9_130115"),
+  aes(x = diet_plan_f,
+      y = Tkcal_day_diff_pc)
+) + 
+  geom_col(alpha = 0.8) + 
+  geom_hline(yintercept = 0, alpha = 0.8) +
+  coord_cartesian(ylim = c(ymin, ymax)) +
+  theme_bw() + 
+  theme(
+    axis.text.x = element_text(
+      angle = 90,
+      hjust = 0,
+      vjust = 0.5
+    ),
+    axis.ticks.x = element_blank(),
+    axis.title.x = element_blank(),
+    legend.title = element_blank(), 
+    legend.position = "none", 
+    panel.grid.major.y = element_line(colour = "grey"), 
+    panel.grid.minor.y = element_line(colour = "grey"), 
+    panel.grid.major.x = element_blank(), 
+    panel.grid.minor.x = element_blank(), 
+    axis.title.y = element_text(size = 7)
+  ) +
+  labs(title = "SSP1", y = "Relative to 2018 supply") +
+  facet_wrap( ~ year) + 
+  scale_y_continuous(labels = scales::percent)
+
+p3b <- ggplot(
+  out_fig3 %>%
+    dplyr::filter(SCENARIO == "SSP2_v9_130115"),
+   aes(x = diet_plan_f,
+      y = Tkcal_day_diff_pc)
+) +
+  geom_col(alpha = 0.8) + 
+  geom_hline(yintercept = 0, alpha = 0.8) +
+  coord_cartesian(ylim = c(ymin, ymax)) +
+  theme_bw() +
+  theme(
+    axis.text.x = element_text(
+      angle = 90,
+      hjust = 0,
+      vjust = 0.5
+    ),
+    axis.ticks.x = element_blank(),
+    axis.title.x = element_blank(),
+    legend.position = "none", 
+    panel.grid.major.y = element_line(colour = "grey"), 
+    panel.grid.minor.y = element_line(colour = "grey"), 
+    panel.grid.major.x = element_blank(), 
+    panel.grid.minor.x = element_blank(), 
+    axis.title.y = element_blank()
+  ) +
+  labs(title = "SSP2") +
+  facet_wrap( ~ year) + 
+  scale_y_continuous(labels = scales::percent)
+
+p3c <- ggplot(
+  out_fig3 %>% 
+    dplyr::filter(SCENARIO == "SSP3_v9_130115"),
+  aes(x = diet_plan_f,
+      y = Tkcal_day_diff_pc)
+) +
+  geom_col(alpha = 0.8) + 
+  geom_hline(yintercept = 0, alpha = 0.8) +
+  coord_cartesian(ylim = c(ymin, ymax)) +
+  theme_bw() +
+  theme(
+    axis.text.x = element_text(
+      angle = 90,
+      hjust = 0,
+      vjust = 0.5
+    ),
+    axis.ticks.x = element_blank(),
+    axis.title.x = element_blank(),
+    legend.position = "none", 
+    panel.grid.major.y = element_line(colour = "grey"), 
+    panel.grid.minor.y = element_line(colour = "grey"), 
+    panel.grid.major.x = element_blank(), 
+    panel.grid.minor.x = element_blank(), 
+    axis.title.y = element_blank()
+  ) +
+  labs(title = "SSP3") +
+  facet_wrap( ~ year) + 
+  scale_y_continuous(labels = scales::percent)
+
+p3d <- ggplot(
+  out_fig3 %>%
+    dplyr::filter(year %in% c(2025, 2050, 2075) &
+                    SCENARIO == "SSP4d_v9_130115"),
+  aes(x = diet_plan_f,
+      y = Tkcal_day_diff_pc)
+) +
+  geom_col(alpha = 0.8) + 
+ geom_hline(yintercept = 0, alpha = 0.8) +
+  coord_cartesian(ylim = c(ymin, ymax)) +
+  theme_bw() +
+  theme(
+    axis.text.x = element_text(
+      angle = 90,
+      hjust = 0,
+      vjust = 0.5
+    ),
+    axis.ticks.x = element_blank(),
+    axis.title.x = element_blank(),
+    legend.position = "none", 
+    panel.grid.major.y = element_line(colour = "grey"), 
+    panel.grid.minor.y = element_line(colour = "grey"), 
+    panel.grid.major.x = element_blank(), 
+    panel.grid.minor.x = element_blank(), 
+    axis.title.y = element_blank()
+  ) +
+  labs(title = "SSP4") +
+  facet_wrap( ~ year) + 
+  scale_y_continuous(labels = scales::percent)
+
+p3e <- ggplot(
+  out_fig3 %>%
+    dplyr::filter(SCENARIO == "SSP5_v9_130115"),
+  aes(x = diet_plan_f,
+      y = Tkcal_day_diff_pc)
+) +
+  geom_col(alpha = 0.8) + 
+  geom_hline(yintercept = 0, alpha = 0.8) +
+  coord_cartesian(ylim = c(ymin, ymax)) +
+  theme_bw() + 
+  theme(
+    axis.text.x = element_text(
+      angle = 90,
+      hjust = 0,
+      vjust = 0.5
+    ),
+    axis.ticks.x = element_blank(),
+    axis.title.x = element_blank(),
+    legend.position = "none", 
+    panel.grid.major.y = element_line(colour = "grey"), 
+    panel.grid.minor.y = element_line(colour = "grey"), 
+    panel.grid.major.x = element_blank(), 
+    panel.grid.minor.x = element_blank(), 
+    axis.title.y = element_text(size = 7)
+  ) +
+  labs(title = "SSP5", y = "Relative to 2018 supply") +
+  facet_wrap( ~ year) + 
+  scale_y_continuous(labels = scales::percent)
+```
+
+
+```{r}
+pa <- plot_grid(p3e, p3a, ncol = 1)
+pb <- plot_grid(NA, p3b, NA, ncol = 1, rel_heights = c(0.5, 1, 0.5))
+pc <- plot_grid(p3c, p3d, ncol = 1)
+
+p3 <- cowplot::plot_grid(pa, pb, pc, ncol = 3)
+cowplot::plot_grid(mitigate_arrow, p3, NA, adapt_arrow, ncol = 2, rel_heights = c(0.9,0.1), rel_widths = c(0.1, 0.9))
+
+# grDevices::jpeg(filename = "Plots/figure_S3d.jpg", 
+#                width = 750, 
+#                height = 500, 
+#                units = "px", 
+#                quality = 1)
+# cowplot::plot_grid(mitigate_arrow, p3, NA, adapt_arrow, ncol = 2, rel_heights = c(0.9,0.1), rel_widths = c(0.1, 0.9))
+# dev.off()
+```
+
+
 Harmonize the countries represented. First, countries in the FAO data set.
 
 ```{r}
@@ -1415,7 +1810,7 @@ iso_list_harmonized <- food_feed_hist_tmp %>%
 ```
 
 
-### Production demand
+# Production Demand Analysis
 
 We next back-out production values (tonnes/year) for plant, animal and fish/marine products, based on assumptions about the edible ratio of crops and animals for food, feed conversion ratios (FCRs) for livestock feed, processing and value chain loss and waste, and feed ingredient mixtures. These were processed in the `iep_healthy_food.Rmd` markdown.
 
@@ -1491,8 +1886,7 @@ feed_proj <- feed_ingredient_demand_summary %>%
 Summarise these after classifying as animal, plant and fish/seafood products.
 
 ```{r}
-food_proj_summary <- food_proj %>% 
-  dplyr::filter(year %in% c(2025, 2050, 2075)) %>% 
+food_proj_summary_all_years <- food_proj %>% 
   dplyr::group_by(year, scenario, model_group, diet_plan) %>% 
   dplyr::summarise(tonnes_yr = sum(tonnes_yr, na.rm = TRUE), 
                    .groups = "drop") %>% 
@@ -1506,10 +1900,12 @@ food_proj_summary <- food_proj %>%
                                                   NA)))) %>% 
   dplyr::group_by(year, scenario, diet_plan, source_group) %>% 
   dplyr::summarise(t_yr = sum(tonnes_yr, na.rm = TRUE), 
-                   .groups = "drop")
+                   .groups = "drop") 
 
-feed_proj_summary <- feed_proj %>% 
-  dplyr::filter(year %in% c(2025, 2050, 2075)) %>% 
+food_proj_summary <- food_proj_summary_all_years %>% 
+  dplyr::filter(year %in% c(2025, 2050, 2075))
+
+feed_proj_summary_all_years <- feed_proj %>% 
   dplyr::group_by(year, scenario, model_group, diet_plan) %>% 
   dplyr::summarise(tonnes_yr = sum(tonnes_yr, na.rm = TRUE), 
                    .groups = "drop") %>% 
@@ -1524,6 +1920,9 @@ feed_proj_summary <- feed_proj %>%
   dplyr::group_by(year, scenario, diet_plan, source_group) %>% 
   dplyr::summarise(t_yr = sum(tonnes_yr, na.rm = TRUE), 
                    .groups = "drop")
+
+feed_proj_summary <- feed_proj_summary_all_years %>% 
+  dplyr::filter(year %in% c(2025, 2050, 2075))
 ```
 
 Bind these projected values to historic values for food and feed.
@@ -1583,7 +1982,7 @@ Combine both of these to harmonize with how I've written the plotting code below
 
 ```{r}
 food_feed_proj_diff <- food_proj_diff %>% 
-  dplyr::bind_rows(feed_proj_diff) %>% 
+  dplyr::full_join(feed_proj_diff) %>% 
   dplyr::mutate(diet_plan_f = diet_plan)
 
 food_feed_proj_diff$diet_plan_f <- factor(food_feed_proj_diff$diet_plan, c("ELA", "CNS", "USDA"))
@@ -1601,6 +2000,7 @@ food_feed_proj_diff_tmp <- food_feed_proj_diff %>%
   dplyr::mutate(pc_diff = t_yr_diff/t_yr_2018)
 ```
 
+## Plot Figure 4
 
 ```{r, warning=FALSE}
 
@@ -1812,6 +2212,8 @@ food_feed_proj_diff_tmp %>%
                    .groups = "drop")
 ```
 
+## Plot Figure 5
+
 Food and feed demand disaggregated by source.
 
 ```{r, warning=FALSE}
@@ -2005,7 +2407,7 @@ pc <- cowplot::plot_grid(p1_food_pc, p1_feed_pc, ncol = 1, align = "v")
 
 cowplot::plot_grid(pa, pb, pc, ncol = 3, rel_widths = c(0.44, 0.1, 0.46), align = "v")
 
-grDevices::jpeg(filename = "Plots/figure_4a.jpg", 
+grDevices::jpeg(filename = "Plots/figure_5.jpg", 
                width = 750, 
                height = 500, 
                units = "px", 
@@ -2016,406 +2418,30 @@ dev.off()
 ```
 
 
+```{r}
+food_feed_proj_diff %>% 
+  dplyr::filter(year == 2075 & source_group == "fish_seafood" & diet_plan == "ELA" & crop_class == "feed")
+```
+
 
 
 ```{r}
-future_food_feed_demand_diff %>% 
-  dplyr::filter(year %in% c(2050, 2075)) %>% 
-  dplyr::group_by(year, crop_class) %>% 
+food_feed_proj_diff %>% 
+  dplyr::filter(year %in% c(2075)) %>% 
+  dplyr::group_by(year, crop_class, source_group) %>% 
   dplyr::summarise(Gt_diff_max = max(t_yr_diff)*1e-9, 
                    Gt_diff_min = min(t_yr_diff)*1e-9, 
                    pc_diff_max = max(pc_diff), 
                    pc_diff_min = min(pc_diff), 
                    .groups = "drop")
 ```
-
-
-```{r}
-out_fig3 <- fao_kcal_diff %>% 
-  dplyr::filter(diet_plan != "FAO") %>% 
-  dplyr::group_by(SCENARIO, diet_plan, year) %>% 
-  dplyr::summarise(Tkcal_day = sum(M_kcal_per_day * 1e-6), 
-                   Tkcal_day_baseline = sum(M_kcal_per_day_2018 * 1e-6), 
-                   .groups = "drop") %>% 
-  dplyr::mutate(Tkcal_day_diff = Tkcal_day-Tkcal_day_baseline, 
-                Tkcal_day_diff_pc = Tkcal_day_diff/Tkcal_day_baseline) %>% 
-  dplyr::filter(year %in% c(2025, 2050, 2075))
-
-```
-
+Example.
 
 ```{r}
-out_fig3 <- out_fig3 %>% 
-  dplyr::mutate(diet_plan_f = ifelse(diet_plan == "CNS-CFP", 
-                                     "CNS", 
-                                     ifelse(diet_plan == "ELA-PHD", 
-                                            "ELA", 
-                                            ifelse(diet_plan == "FDA-SDP", 
-                                                   "USDA", 
-                                                   NA))))
-out_fig3$diet_plan_f <- factor(out_fig3$diet_plan_f, levels = c("ELA", "CNS", "USDA"))
+food_feed_proj_diff %>% 
+  dplyr::filter(year == 2075) %>% 
+  dplyr::filter(crop_class == "feed" & source_group == "fish_seafood" & diet_plan == "ELA")
 ```
-
-```{r}
-
-out_fig3_abs <- out_fig3 %>% 
-  dplyr::select(-Tkcal_day_diff_pc) %>% 
-  dplyr::group_by(year) %>% 
-  dplyr::summarise(diff_max = max(Tkcal_day_diff), 
-                   diff_min = min(Tkcal_day_diff), 
-                   .groups = "drop")
-
-out_fig3_pc <- out_fig3 %>% 
-  dplyr::select(-Tkcal_day_diff) %>% 
-  dplyr::group_by(year) %>% 
-  dplyr::summarise(pc_diff_max = max(Tkcal_day_diff_pc), 
-                   pc_diff_min = min(Tkcal_day_diff_pc), 
-                   .groups = "drop")
-
-out_fig3_abs
-out_fig3_pc
-```
-
-```{r}
-ymin <- min(out_fig3_abs$diff_min)
-ymax <- max(out_fig3_abs$diff_max)
-
-p3a <- ggplot(
-  out_fig3 %>%
-    dplyr::filter(SCENARIO == "SSP1_v9_130115"),
-  aes(x = diet_plan_f,
-      y = Tkcal_day_diff)
-) + 
-  geom_col(alpha = 0.8) + 
-  geom_hline(yintercept = 0, alpha = 0.8) +
-  coord_cartesian(ylim = c(ymin, ymax)) +
-  theme_bw() + 
-  theme(
-    axis.text.x = element_text(
-      angle = 90,
-      hjust = 0,
-      vjust = 0.5
-    ),
-    axis.ticks.x = element_blank(),
-    axis.title.x = element_blank(),
-    legend.title = element_blank(), 
-    legend.position = "none", 
-    panel.grid.major.y = element_line(colour = "grey"), 
-    panel.grid.minor.y = element_line(colour = "grey"), 
-    panel.grid.major.x = element_blank(), 
-    panel.grid.minor.x = element_blank(), 
-    axis.title.y = element_text(size = 7)
-  ) +
-  labs(title = "SSP1", y = "Tkcal/day over 2018 supply") +
-  facet_wrap( ~ year)
-
-p3b <- ggplot(
-  out_fig3 %>%
-    dplyr::filter(SCENARIO == "SSP2_v9_130115"),
-   aes(x = diet_plan_f,
-      y = Tkcal_day_diff)
-) +
-  geom_col(alpha = 0.8) + 
-  geom_hline(yintercept = 0, alpha = 0.8) +
-  coord_cartesian(ylim = c(ymin, ymax)) +
-  theme_bw() +
-  theme(
-    axis.text.x = element_text(
-      angle = 90,
-      hjust = 0,
-      vjust = 0.5
-    ),
-    axis.ticks.x = element_blank(),
-    axis.title.x = element_blank(),
-    legend.position = "none", 
-    panel.grid.major.y = element_line(colour = "grey"), 
-    panel.grid.minor.y = element_line(colour = "grey"), 
-    panel.grid.major.x = element_blank(), 
-    panel.grid.minor.x = element_blank(), 
-    axis.title.y = element_blank()
-  ) +
-  labs(title = "SSP2") +
-  facet_wrap( ~ year)
-
-p3c <- ggplot(
-  out_fig3 %>% 
-    dplyr::filter(SCENARIO == "SSP3_v9_130115"),
-  aes(x = diet_plan_f,
-      y = Tkcal_day_diff)
-) +
-  geom_col(alpha = 0.8) + 
-  geom_hline(yintercept = 0, alpha = 0.8) +
-  coord_cartesian(ylim = c(ymin, ymax)) +
-  theme_bw() +
-  theme(
-    axis.text.x = element_text(
-      angle = 90,
-      hjust = 0,
-      vjust = 0.5
-    ),
-    axis.ticks.x = element_blank(),
-    axis.title.x = element_blank(),
-    legend.position = "none", 
-    panel.grid.major.y = element_line(colour = "grey"), 
-    panel.grid.minor.y = element_line(colour = "grey"), 
-    panel.grid.major.x = element_blank(), 
-    panel.grid.minor.x = element_blank(), 
-    axis.title.y = element_blank()
-  ) +
-  labs(title = "SSP3") +
-  facet_wrap( ~ year)
-
-p3d <- ggplot(
-  out_fig3 %>%
-    dplyr::filter(year %in% c(2025, 2050, 2075) &
-                    SCENARIO == "SSP4d_v9_130115"),
-  aes(x = diet_plan_f,
-      y = Tkcal_day_diff)
-) +
-  geom_col(alpha = 0.8) + 
- geom_hline(yintercept = 0, alpha = 0.8) +
-  coord_cartesian(ylim = c(ymin, ymax)) +
-  theme_bw() +
-  theme(
-    axis.text.x = element_text(
-      angle = 90,
-      hjust = 0,
-      vjust = 0.5
-    ),
-    axis.ticks.x = element_blank(),
-    axis.title.x = element_blank(),
-    legend.position = "none", 
-    panel.grid.major.y = element_line(colour = "grey"), 
-    panel.grid.minor.y = element_line(colour = "grey"), 
-    panel.grid.major.x = element_blank(), 
-    panel.grid.minor.x = element_blank(), 
-    axis.title.y = element_text(size = 7)
-  ) +
-  labs(title = "SSP4", y = "Tkcal/day over 2018 supply") +
-  facet_wrap( ~ year)
-
-p3e <- ggplot(
-  out_fig3 %>%
-    dplyr::filter(SCENARIO == "SSP5_v9_130115"),
-  aes(x = diet_plan_f,
-      y = Tkcal_day_diff)
-) +
-  geom_col(alpha = 0.8) + 
-  geom_hline(yintercept = 0, alpha = 0.8) +
-  coord_cartesian(ylim = c(ymin, ymax)) +
-  theme_bw() + 
-  theme(
-    axis.text.x = element_text(
-      angle = 90,
-      hjust = 0,
-      vjust = 0.5
-    ),
-    axis.ticks.x = element_blank(),
-    axis.title.x = element_blank(),
-    legend.position = "none", 
-    panel.grid.major.y = element_line(colour = "grey"), 
-    panel.grid.minor.y = element_line(colour = "grey"), 
-    panel.grid.major.x = element_blank(), 
-    panel.grid.minor.x = element_blank(), 
-    axis.title.y = element_blank()
-  ) +
-  labs(title = "SSP5") +
-  facet_wrap( ~ year)
-```
-
-
-```{r}
-pa <- plot_grid(p3e, p3a, ncol = 1)
-pb <- plot_grid(NA, p3b, NA, ncol = 1, rel_heights = c(0.5, 1, 0.5))
-pc <- plot_grid(p3c, p3d, ncol = 1)
-
-p3 <- cowplot::plot_grid(pa, pb, pc, ncol = 3)
-cowplot::plot_grid(mitigate_arrow, p3, NA, adapt_arrow, ncol = 2, rel_heights = c(0.9,0.1), rel_widths = c(0.1, 0.9))
-
-grDevices::jpeg(filename = "Plots/figure_S3c.jpg", 
-               width = 750, 
-               height = 500, 
-               units = "px", 
-               quality = 1)
-cowplot::plot_grid(mitigate_arrow, p3, NA, adapt_arrow, ncol = 2, rel_heights = c(0.9,0.1), rel_widths = c(0.1, 0.9))
-dev.off()
-```
-
-```{r}
-ymin <- min(out_fig3_pc$pc_diff_min)
-ymax <- max(out_fig3_pc$pc_diff_max)
-
-p3a <- ggplot(
-  out_fig3 %>%
-    dplyr::filter(SCENARIO == "SSP1_v9_130115"),
-  aes(x = diet_plan_f,
-      y = Tkcal_day_diff_pc)
-) + 
-  geom_col(alpha = 0.8) + 
-  geom_hline(yintercept = 0, alpha = 0.8) +
-  coord_cartesian(ylim = c(ymin, ymax)) +
-  theme_bw() + 
-  theme(
-    axis.text.x = element_text(
-      angle = 90,
-      hjust = 0,
-      vjust = 0.5
-    ),
-    axis.ticks.x = element_blank(),
-    axis.title.x = element_blank(),
-    legend.title = element_blank(), 
-    legend.position = "none", 
-    panel.grid.major.y = element_line(colour = "grey"), 
-    panel.grid.minor.y = element_line(colour = "grey"), 
-    panel.grid.major.x = element_blank(), 
-    panel.grid.minor.x = element_blank(), 
-    axis.title.y = element_text(size = 7)
-  ) +
-  labs(title = "SSP1", y = "Relative to 2018 supply") +
-  facet_wrap( ~ year) + 
-  scale_y_continuous(labels = scales::percent)
-
-p3b <- ggplot(
-  out_fig3 %>%
-    dplyr::filter(SCENARIO == "SSP2_v9_130115"),
-   aes(x = diet_plan_f,
-      y = Tkcal_day_diff_pc)
-) +
-  geom_col(alpha = 0.8) + 
-  geom_hline(yintercept = 0, alpha = 0.8) +
-  coord_cartesian(ylim = c(ymin, ymax)) +
-  theme_bw() +
-  theme(
-    axis.text.x = element_text(
-      angle = 90,
-      hjust = 0,
-      vjust = 0.5
-    ),
-    axis.ticks.x = element_blank(),
-    axis.title.x = element_blank(),
-    legend.position = "none", 
-    panel.grid.major.y = element_line(colour = "grey"), 
-    panel.grid.minor.y = element_line(colour = "grey"), 
-    panel.grid.major.x = element_blank(), 
-    panel.grid.minor.x = element_blank(), 
-    axis.title.y = element_blank()
-  ) +
-  labs(title = "SSP2") +
-  facet_wrap( ~ year) + 
-  scale_y_continuous(labels = scales::percent)
-
-p3c <- ggplot(
-  out_fig3 %>% 
-    dplyr::filter(SCENARIO == "SSP3_v9_130115"),
-  aes(x = diet_plan_f,
-      y = Tkcal_day_diff_pc)
-) +
-  geom_col(alpha = 0.8) + 
-  geom_hline(yintercept = 0, alpha = 0.8) +
-  coord_cartesian(ylim = c(ymin, ymax)) +
-  theme_bw() +
-  theme(
-    axis.text.x = element_text(
-      angle = 90,
-      hjust = 0,
-      vjust = 0.5
-    ),
-    axis.ticks.x = element_blank(),
-    axis.title.x = element_blank(),
-    legend.position = "none", 
-    panel.grid.major.y = element_line(colour = "grey"), 
-    panel.grid.minor.y = element_line(colour = "grey"), 
-    panel.grid.major.x = element_blank(), 
-    panel.grid.minor.x = element_blank(), 
-    axis.title.y = element_blank()
-  ) +
-  labs(title = "SSP3") +
-  facet_wrap( ~ year) + 
-  scale_y_continuous(labels = scales::percent)
-
-p3d <- ggplot(
-  out_fig3 %>%
-    dplyr::filter(year %in% c(2025, 2050, 2075) &
-                    SCENARIO == "SSP4d_v9_130115"),
-  aes(x = diet_plan_f,
-      y = Tkcal_day_diff_pc)
-) +
-  geom_col(alpha = 0.8) + 
- geom_hline(yintercept = 0, alpha = 0.8) +
-  coord_cartesian(ylim = c(ymin, ymax)) +
-  theme_bw() +
-  theme(
-    axis.text.x = element_text(
-      angle = 90,
-      hjust = 0,
-      vjust = 0.5
-    ),
-    axis.ticks.x = element_blank(),
-    axis.title.x = element_blank(),
-    legend.position = "none", 
-    panel.grid.major.y = element_line(colour = "grey"), 
-    panel.grid.minor.y = element_line(colour = "grey"), 
-    panel.grid.major.x = element_blank(), 
-    panel.grid.minor.x = element_blank(), 
-    axis.title.y = element_blank()
-  ) +
-  labs(title = "SSP4") +
-  facet_wrap( ~ year) + 
-  scale_y_continuous(labels = scales::percent)
-
-p3e <- ggplot(
-  out_fig3 %>%
-    dplyr::filter(SCENARIO == "SSP5_v9_130115"),
-  aes(x = diet_plan_f,
-      y = Tkcal_day_diff_pc)
-) +
-  geom_col(alpha = 0.8) + 
-  geom_hline(yintercept = 0, alpha = 0.8) +
-  coord_cartesian(ylim = c(ymin, ymax)) +
-  theme_bw() + 
-  theme(
-    axis.text.x = element_text(
-      angle = 90,
-      hjust = 0,
-      vjust = 0.5
-    ),
-    axis.ticks.x = element_blank(),
-    axis.title.x = element_blank(),
-    legend.position = "none", 
-    panel.grid.major.y = element_line(colour = "grey"), 
-    panel.grid.minor.y = element_line(colour = "grey"), 
-    panel.grid.major.x = element_blank(), 
-    panel.grid.minor.x = element_blank(), 
-    axis.title.y = element_text(size = 7)
-  ) +
-  labs(title = "SSP5", y = "Relative to 2018 supply") +
-  facet_wrap( ~ year) + 
-  scale_y_continuous(labels = scales::percent)
-```
-
-
-```{r}
-pa <- plot_grid(p3e, p3a, ncol = 1)
-pb <- plot_grid(NA, p3b, NA, ncol = 1, rel_heights = c(0.5, 1, 0.5))
-pc <- plot_grid(p3c, p3d, ncol = 1)
-
-p3 <- cowplot::plot_grid(pa, pb, pc, ncol = 3)
-cowplot::plot_grid(mitigate_arrow, p3, NA, adapt_arrow, ncol = 2, rel_heights = c(0.9,0.1), rel_widths = c(0.1, 0.9))
-
-grDevices::jpeg(filename = "Plots/figure_S3d.jpg", 
-               width = 750, 
-               height = 500, 
-               units = "px", 
-               quality = 1)
-cowplot::plot_grid(mitigate_arrow, p3, NA, adapt_arrow, ncol = 2, rel_heights = c(0.9,0.1), rel_widths = c(0.1, 0.9))
-dev.off()
-```
-
-
-
-
-
-
 
 Historic (FAO) food/feed supply for 2018.
 ```{r}
@@ -2467,13 +2493,87 @@ ssp_food_feed_demand <- global_crop_demand_food_feed_diff %>%
 ssp_food_feed_demand$diet_plan_f <- factor(ssp_food_feed_demand$diet_plan, levels = c("ELA", "CNS", "USDA"))
 ```
 
+# Pathways Analysis
+
+Organize data for pathways analysis.
+
+```{r}
+food_proj_2020_2100 <- food_weight %>% 
+  dplyr::filter(iso_alpha3 %in% iso_list_harmonized) %>% 
+  dplyr::mutate(tonnes_yr = tonnes_day_food * 365) %>%
+  dplyr::select(SCENARIO,
+                iso_alpha3,
+                subregionname,
+                diet_plan,
+                year,
+                model_group,
+                tonnes_yr) %>%
+  dplyr::bind_rows(
+    live_food_weight %>% 
+  dplyr::filter(iso_alpha3 %in% iso_list_harmonized) %>%
+      dplyr::mutate(tonnes_yr = tonnes_day_food * 365) %>%
+      dplyr::select(
+        SCENARIO,
+        iso_alpha3,
+        subregionname,
+        diet_plan,
+        year,
+        model_group,
+        tonnes_yr
+      )
+  ) %>%
+  dplyr::mutate(scenario = ifelse(
+    SCENARIO == "SSP1_v9_130115",
+    "SSP1",
+    ifelse(
+      SCENARIO == "SSP2_v9_130115",
+      "SSP2",
+      ifelse(
+        SCENARIO == "SSP3_v9_130115",
+        "SSP3",
+        ifelse(SCENARIO == "SSP4d_v9_130115",
+               "SSP4",
+               "SSP5")
+      )
+    )
+  )) %>% 
+  dplyr::select(-SCENARIO) %>% 
+  dplyr::filter(year >= 2020)
+
+feed_proj_2020_2100 <- feed_ingredient_demand_summary %>% 
+  dplyr::filter(iso_alpha3 %in% iso_list_harmonized) %>% 
+  dplyr::mutate(tonnes_yr = tonnes_day*365) %>% 
+  dplyr::select(-tonnes_day) %>%
+  dplyr::mutate(scenario = ifelse(
+    SCENARIO == "SSP1_v9_130115",
+    "SSP1",
+    ifelse(
+      SCENARIO == "SSP2_v9_130115",
+      "SSP2",
+      ifelse(
+        SCENARIO == "SSP3_v9_130115",
+        "SSP3",
+        ifelse(SCENARIO == "SSP4d_v9_130115",
+               "SSP4",
+               "SSP5")
+      )
+    )
+  )) %>% 
+  dplyr::select(-SCENARIO) %>% 
+  dplyr::filter(year >= 2020)
+
+```
+
+
 
 ```{r}
 future_food_feed_demand_diff <- ssp_food_feed_demand %>% 
   dplyr::left_join(fao_food_feed_supply) %>% 
   dplyr::mutate(t_yr_diff = t_yr-t_yr_2018) %>% 
-  dplyr::mutate(pc_diff = t_yr_diff/t_yr_2018)
+  dplyr::mutate(pc_diff = t_yr_diff/t_yr_2018) %>% 
+  dplyr::ungroup()
 ```
+
 
 ```{r}
 cols <- data.frame(
@@ -2559,227 +2659,227 @@ p_food_feed
 ```
 
 
-```{r, warning=FALSE}
+<!-- # ```{r, warning=FALSE} -->
+<!-- #  -->
+<!-- # p1_food <- ggplot( -->
+<!-- #   data = future_food_feed_demand_diff %>% -->
+<!-- #     dplyr::filter(crop_class == "food") %>% -->
+<!-- #     dplyr::filter(year %in% c(2025, 2050, 2075)), -->
+<!-- #   mapping = aes(x = diet_plan_f, -->
+<!-- #                 y = t_yr_diff * 1e-9) -->
+<!-- # ) + -->
+<!-- #   geom_col( -->
+<!-- #     aes(alpha = scenario), -->
+<!-- #     position = "dodge", -->
+<!-- #     fill = scales::muted("green"), -->
+<!-- #     colour = "black", -->
+<!-- #     size = 0.1 -->
+<!-- #   ) + -->
+<!-- #   geom_hline(yintercept = 0, alpha = 0.9) + -->
+<!-- #   scale_fill_manual(labels = labz) + -->
+<!-- #   theme_bw() + -->
+<!-- #   theme( -->
+<!-- #     legend.title = element_blank(), -->
+<!-- #     legend.text = element_text(size = 12), -->
+<!-- #     axis.text.x = element_text( -->
+<!-- #       angle = 90, -->
+<!-- #       hjust = 0.9, -->
+<!-- #       vjust = 0.5, -->
+<!-- #       size = 12 -->
+<!-- #     ), -->
+<!-- #     axis.text.y = element_text(size = 12), -->
+<!-- #     axis.title.y = element_text(size = 12), -->
+<!-- #     axis.title.x = element_blank(), -->
+<!-- #     panel.grid.major.x = element_blank(), -->
+<!-- #     panel.grid.minor.x = element_blank(), -->
+<!-- #     strip.text = element_text(size = 14) -->
+<!-- #   ) + -->
+<!-- #   labs(title = "Food for humans (absolute change)", -->
+<!-- #        y = "Gt/year above 2018 supply") + -->
+<!-- #   facet_grid( ~ year) + -->
+<!-- #   coord_cartesian(ylim = c(min(out$min_diff), max(out$max_diff))) -->
+<!-- #  -->
+<!-- # p1_food_legend <- cowplot::get_legend(p1_food) -->
+<!-- # p1_food <- p1_food + -->
+<!-- #   theme(legend.position = "none") -->
+<!-- #  -->
+<!-- # p1_feed <- ggplot( -->
+<!-- #   data = future_food_feed_demand_diff %>% -->
+<!-- #     dplyr::filter(crop_class == "feed") %>% -->
+<!-- #     dplyr::filter(year %in% c(2025, 2050, 2075)), -->
+<!-- #   mapping = aes(x = diet_plan_f, -->
+<!-- #                 y = t_yr_diff * 1e-9) -->
+<!-- # ) + -->
+<!-- #   geom_col( -->
+<!-- #     aes(alpha = scenario), -->
+<!-- #     position = "dodge", -->
+<!-- #     fill = scales::muted("magenta"), -->
+<!-- #     colour = "black", -->
+<!-- #     size = 0.1 -->
+<!-- #   ) + -->
+<!-- #   geom_hline(yintercept = 0, alpha = 0.9) + -->
+<!-- #   scale_fill_manual(labels = labz) + -->
+<!-- #   theme_bw() + -->
+<!-- #   theme( -->
+<!-- #     legend.title = element_blank(), -->
+<!-- #     legend.text = element_text(size = 12), -->
+<!-- #     axis.text.x = element_text( -->
+<!-- #       angle = 90, -->
+<!-- #       hjust = 0.9, -->
+<!-- #       vjust = 0.5, -->
+<!-- #       size = 12 -->
+<!-- #     ), -->
+<!-- #     axis.text.y = element_text(size = 12), -->
+<!-- #     axis.title.y = element_text(size = 12), -->
+<!-- #     axis.title.x = element_blank(), -->
+<!-- #     panel.grid.major.x = element_blank(), -->
+<!-- #     panel.grid.minor.x = element_blank(), -->
+<!-- #     strip.text = element_text(size = 14) -->
+<!-- #   ) + -->
+<!-- #   labs(title = "Feed for animals (absolute change)", -->
+<!-- #        y = "Gt/year above 2018 supply") + -->
+<!-- #   facet_grid( ~ year) + -->
+<!-- #   coord_cartesian(ylim = c(min(out$min_diff), max(out$max_diff))) -->
+<!-- #  -->
+<!-- # p1_feed_legend <- cowplot::get_legend(p1_feed) -->
+<!-- # p1_feed <- p1_feed + -->
+<!-- #   theme(legend.position = "none") -->
+<!-- #  -->
+<!-- # p1_food_pc <- ggplot( -->
+<!-- #   data = future_food_feed_demand_diff %>% -->
+<!-- #     dplyr::filter(crop_class == "food") %>% -->
+<!-- #     dplyr::filter(year %in% c(2025, 2050, 2075)), -->
+<!-- #   mapping = aes(x = diet_plan_f, -->
+<!-- #                 y = pc_diff) -->
+<!-- # ) + -->
+<!-- #   geom_col( -->
+<!-- #     aes(alpha = scenario), -->
+<!-- #     position = "dodge", -->
+<!-- #     fill = scales::muted("green"), -->
+<!-- #     colour = "black", -->
+<!-- #     size = 0.1 -->
+<!-- #   ) + -->
+<!-- #   geom_hline(yintercept = 0, alpha = 0.9) + -->
+<!-- #   scale_fill_manual(labels = labz) + -->
+<!-- #   theme_bw() + -->
+<!-- #   theme( -->
+<!-- #     legend.position = "none", -->
+<!-- #     legend.title = element_blank(), -->
+<!-- #     legend.text = element_text(size = 12), -->
+<!-- #     axis.text.x = element_text( -->
+<!-- #       angle = 90, -->
+<!-- #       hjust = 0.9, -->
+<!-- #       vjust = 0.5, -->
+<!-- #       size = 12 -->
+<!-- #     ), -->
+<!-- #     axis.text.y = element_text(size = 12), -->
+<!-- #     axis.title.y = element_text(size = 12), -->
+<!-- #     axis.title.x = element_blank(), -->
+<!-- #     panel.grid.major.x = element_blank(), -->
+<!-- #     panel.grid.minor.x = element_blank(), -->
+<!-- #     strip.text = element_text(size = 14) -->
+<!-- #   ) + -->
+<!-- #   labs(title = "Food for humans (relative change)", -->
+<!-- #        y = "Relative change from 2018") + -->
+<!-- #   facet_grid( ~ year) + -->
+<!-- #   coord_cartesian(ylim = c(min(out$min_pc_diff), max(out$max_pc_diff))) +  -->
+<!-- #   scale_y_continuous(labels = scales::percent) -->
+<!-- #  -->
+<!-- # p1_feed_pc <- ggplot( -->
+<!-- #   data = future_food_feed_demand_diff %>% -->
+<!-- #     dplyr::filter(crop_class == "feed") %>% -->
+<!-- #     dplyr::filter(year %in% c(2025, 2050, 2075)), -->
+<!-- #   mapping = aes(x = diet_plan_f, -->
+<!-- #                 y = pc_diff) -->
+<!-- # ) + -->
+<!-- #   geom_col( -->
+<!-- #     aes(alpha = scenario), -->
+<!-- #     position = "dodge", -->
+<!-- #     fill = scales::muted("magenta"), -->
+<!-- #     colour = "black", -->
+<!-- #     size = 0.1 -->
+<!-- #   ) + -->
+<!-- #   geom_hline(yintercept = 0, alpha = 0.9) + -->
+<!-- #   scale_fill_manual(labels = labz) + -->
+<!-- #   theme_bw() + -->
+<!-- #   theme( -->
+<!-- #     legend.position = "none", -->
+<!-- #     legend.title = element_blank(), -->
+<!-- #     legend.text = element_text(size = 12), -->
+<!-- #     axis.text.x = element_text( -->
+<!-- #       angle = 90, -->
+<!-- #       hjust = 0.9, -->
+<!-- #       vjust = 0.5, -->
+<!-- #       size = 12 -->
+<!-- #     ), -->
+<!-- #     axis.text.y = element_text(size = 12), -->
+<!-- #     axis.title.y = element_text(size = 12), -->
+<!-- #     axis.title.x = element_blank(), -->
+<!-- #     panel.grid.major.x = element_blank(), -->
+<!-- #     panel.grid.minor.x = element_blank(), -->
+<!-- #     strip.text = element_text(size = 14) -->
+<!-- #   ) + -->
+<!-- #   labs(title = "Feed for animals (relative change)", -->
+<!-- #        y = "Relative change from 2018") + -->
+<!-- #   facet_grid( ~ year) + -->
+<!-- #   coord_cartesian(ylim = c(min(out$min_pc_diff), max(out$max_pc_diff))) +  -->
+<!-- #   scale_y_continuous(labels = scales::percent) -->
+<!-- #  -->
+<!-- # ``` -->
+<!-- #  -->
+<!-- #  -->
+<!-- # ```{r} -->
+<!-- # pa <- cowplot::plot_grid(p1_food, p1_feed, ncol = 1) -->
+<!-- # pb <- cowplot::plot_grid(p1_food_legend, p1_feed_legend, ncol = 1) -->
+<!-- # pc <- cowplot::plot_grid(p1_food_pc, p1_feed_pc, ncol = 1) -->
+<!-- #  -->
+<!-- # cowplot::plot_grid(pa, pb, pc, ncol = 3, rel_widths = c(0.44, 0.1, 0.46)) -->
+<!-- #  -->
+<!-- # grDevices::jpeg(filename = "Plots/figure_4.jpg",  -->
+<!-- #                width = 750,  -->
+<!-- #                height = 500,  -->
+<!-- #                units = "px",  -->
+<!-- #                quality = 1) -->
+<!-- # cowplot::plot_grid(pa, pb, pc, ncol = 3, rel_widths = c(0.44, 0.1, 0.46)) -->
+<!-- # dev.off() -->
+<!-- #  -->
+<!-- # ``` -->
 
-p1_food <- ggplot(
-  data = future_food_feed_demand_diff %>%
-    dplyr::filter(crop_class == "food") %>%
-    dplyr::filter(year %in% c(2025, 2050, 2075)),
-  mapping = aes(x = diet_plan_f,
-                y = t_yr_diff * 1e-9)
-) +
-  geom_col(
-    aes(alpha = scenario),
-    position = "dodge",
-    fill = scales::muted("green"),
-    colour = "black",
-    size = 0.1
-  ) +
-  geom_hline(yintercept = 0, alpha = 0.9) +
-  scale_fill_manual(labels = labz) +
-  theme_bw() +
-  theme(
-    legend.title = element_blank(),
-    legend.text = element_text(size = 12),
-    axis.text.x = element_text(
-      angle = 90,
-      hjust = 0.9,
-      vjust = 0.5,
-      size = 12
-    ),
-    axis.text.y = element_text(size = 12),
-    axis.title.y = element_text(size = 12),
-    axis.title.x = element_blank(),
-    panel.grid.major.x = element_blank(),
-    panel.grid.minor.x = element_blank(),
-    strip.text = element_text(size = 14)
-  ) +
-  labs(title = "Food for humans (absolute change)",
-       y = "Gt/year above 2018 supply") +
-  facet_grid( ~ year) +
-  coord_cartesian(ylim = c(min(out$min_diff), max(out$max_diff)))
 
-p1_food_legend <- cowplot::get_legend(p1_food)
-p1_food <- p1_food +
-  theme(legend.position = "none")
+<!-- Read maxima and minima for these explicitly. -->
+<!-- ```{r} -->
+<!-- tmp <- future_food_feed_demand_diff %>% -->
+<!--   dplyr::group_by(scenario, year, diet_plan) %>% -->
+<!--   dplyr::summarise(t_yr_diff = sum(t_yr_diff, na.rm = TRUE), -->
+<!--                    .groups = "drop") -->
 
-p1_feed <- ggplot(
-  data = future_food_feed_demand_diff %>%
-    dplyr::filter(crop_class == "feed") %>%
-    dplyr::filter(year %in% c(2025, 2050, 2075)),
-  mapping = aes(x = diet_plan_f,
-                y = t_yr_diff * 1e-9)
-) +
-  geom_col(
-    aes(alpha = scenario),
-    position = "dodge",
-    fill = scales::muted("magenta"),
-    colour = "black",
-    size = 0.1
-  ) +
-  geom_hline(yintercept = 0, alpha = 0.9) +
-  scale_fill_manual(labels = labz) +
-  theme_bw() +
-  theme(
-    legend.title = element_blank(),
-    legend.text = element_text(size = 12),
-    axis.text.x = element_text(
-      angle = 90,
-      hjust = 0.9,
-      vjust = 0.5,
-      size = 12
-    ),
-    axis.text.y = element_text(size = 12),
-    axis.title.y = element_text(size = 12),
-    axis.title.x = element_blank(),
-    panel.grid.major.x = element_blank(),
-    panel.grid.minor.x = element_blank(),
-    strip.text = element_text(size = 14)
-  ) +
-  labs(title = "Feed for animals (absolute change)",
-       y = "Gt/year above 2018 supply") +
-  facet_grid( ~ year) +
-  coord_cartesian(ylim = c(min(out$min_diff), max(out$max_diff)))
+<!-- tmp1 <- tmp %>% -->
+<!--   dplyr::filter(year == 2050) %>% -->
+<!--   dplyr::pull(t_yr_diff) %>% -->
+<!--   max(.) * 1e-9 -->
 
-p1_feed_legend <- cowplot::get_legend(p1_feed)
-p1_feed <- p1_feed +
-  theme(legend.position = "none")
+<!-- tmp2 <- tmp %>% -->
+<!--   dplyr::filter(year == 2050) %>% -->
+<!--   dplyr::pull(t_yr_diff) %>% -->
+<!--   min(.) * 1e-9 -->
 
-p1_food_pc <- ggplot(
-  data = future_food_feed_demand_diff %>%
-    dplyr::filter(crop_class == "food") %>%
-    dplyr::filter(year %in% c(2025, 2050, 2075)),
-  mapping = aes(x = diet_plan_f,
-                y = pc_diff)
-) +
-  geom_col(
-    aes(alpha = scenario),
-    position = "dodge",
-    fill = scales::muted("green"),
-    colour = "black",
-    size = 0.1
-  ) +
-  geom_hline(yintercept = 0, alpha = 0.9) +
-  scale_fill_manual(labels = labz) +
-  theme_bw() +
-  theme(
-    legend.position = "none",
-    legend.title = element_blank(),
-    legend.text = element_text(size = 12),
-    axis.text.x = element_text(
-      angle = 90,
-      hjust = 0.9,
-      vjust = 0.5,
-      size = 12
-    ),
-    axis.text.y = element_text(size = 12),
-    axis.title.y = element_text(size = 12),
-    axis.title.x = element_blank(),
-    panel.grid.major.x = element_blank(),
-    panel.grid.minor.x = element_blank(),
-    strip.text = element_text(size = 14)
-  ) +
-  labs(title = "Food for humans (relative change)",
-       y = "Relative change from 2018") +
-  facet_grid( ~ year) +
-  coord_cartesian(ylim = c(min(out$min_pc_diff), max(out$max_pc_diff))) + 
-  scale_y_continuous(labels = scales::percent)
+<!-- tmp3 <- tmp %>% -->
+<!--   dplyr::filter(year == 2075) %>% -->
+<!--   dplyr::pull(t_yr_diff) %>% -->
+<!--   max(.) * 1e-9 -->
 
-p1_feed_pc <- ggplot(
-  data = future_food_feed_demand_diff %>%
-    dplyr::filter(crop_class == "feed") %>%
-    dplyr::filter(year %in% c(2025, 2050, 2075)),
-  mapping = aes(x = diet_plan_f,
-                y = pc_diff)
-) +
-  geom_col(
-    aes(alpha = scenario),
-    position = "dodge",
-    fill = scales::muted("magenta"),
-    colour = "black",
-    size = 0.1
-  ) +
-  geom_hline(yintercept = 0, alpha = 0.9) +
-  scale_fill_manual(labels = labz) +
-  theme_bw() +
-  theme(
-    legend.position = "none",
-    legend.title = element_blank(),
-    legend.text = element_text(size = 12),
-    axis.text.x = element_text(
-      angle = 90,
-      hjust = 0.9,
-      vjust = 0.5,
-      size = 12
-    ),
-    axis.text.y = element_text(size = 12),
-    axis.title.y = element_text(size = 12),
-    axis.title.x = element_blank(),
-    panel.grid.major.x = element_blank(),
-    panel.grid.minor.x = element_blank(),
-    strip.text = element_text(size = 14)
-  ) +
-  labs(title = "Feed for animals (relative change)",
-       y = "Relative change from 2018") +
-  facet_grid( ~ year) +
-  coord_cartesian(ylim = c(min(out$min_pc_diff), max(out$max_pc_diff))) + 
-  scale_y_continuous(labels = scales::percent)
+<!-- tmp4 <- tmp %>% -->
+<!--   dplyr::filter(year == 2075) %>% -->
+<!--   dplyr::pull(t_yr_diff) %>% -->
+<!--   min(.) * 1e-9 -->
 
-```
-
-
-```{r}
-pa <- cowplot::plot_grid(p1_food, p1_feed, ncol = 1)
-pb <- cowplot::plot_grid(p1_food_legend, p1_feed_legend, ncol = 1)
-pc <- cowplot::plot_grid(p1_food_pc, p1_feed_pc, ncol = 1)
-
-cowplot::plot_grid(pa, pb, pc, ncol = 3, rel_widths = c(0.44, 0.1, 0.46))
-
-grDevices::jpeg(filename = "Plots/figure_4.jpg", 
-               width = 750, 
-               height = 500, 
-               units = "px", 
-               quality = 1)
-cowplot::plot_grid(pa, pb, pc, ncol = 3, rel_widths = c(0.44, 0.1, 0.46))
-dev.off()
-
-```
-
-
-Read maxima and minima for these explicitly.
-```{r}
-tmp <- future_food_feed_demand_diff %>%
-  dplyr::group_by(scenario, year, diet_plan) %>%
-  dplyr::summarise(t_yr_diff = sum(t_yr_diff, na.rm = TRUE),
-                   .groups = "drop")
-
-tmp1 <- tmp %>%
-  dplyr::filter(year == 2050) %>%
-  dplyr::pull(t_yr_diff) %>%
-  max(.) * 1e-9
-
-tmp2 <- tmp %>%
-  dplyr::filter(year == 2050) %>%
-  dplyr::pull(t_yr_diff) %>%
-  min(.) * 1e-9
-
-tmp3 <- tmp %>%
-  dplyr::filter(year == 2075) %>%
-  dplyr::pull(t_yr_diff) %>%
-  max(.) * 1e-9
-
-tmp4 <- tmp %>%
-  dplyr::filter(year == 2075) %>%
-  dplyr::pull(t_yr_diff) %>%
-  min(.) * 1e-9
-
-out <- tibble(
-  value_diff = c("max","min","max","min"),
-  year = c(2050,2050,2075,2075), 
-  t_yr_diff = c(tmp1,tmp2,tmp3,tmp4)
-)
-out
-```
+<!-- out <- tibble( -->
+<!--   value_diff = c("max","min","max","min"), -->
+<!--   year = c(2050,2050,2075,2075),  -->
+<!--   t_yr_diff = c(tmp1,tmp2,tmp3,tmp4) -->
+<!-- ) -->
+<!-- out -->
+<!-- ``` -->
 
 Test this. Find differences between the projected demand and FAO supply.
 ```{r}
@@ -2808,662 +2908,662 @@ diet_diffs <- tmp3 %>%
 ```
 
 
-```{r}
-cols <- data.frame(
-  food = "#EEAF35", 
-  feed = "#F17EB8"
-)
-labz <- c("food", "feed")
+<!-- ```{r} -->
+<!-- cols <- data.frame( -->
+<!--   food = "#EEAF35",  -->
+<!--   feed = "#F17EB8" -->
+<!-- ) -->
+<!-- labz <- c("food", "feed") -->
 
-# ymax <- (max(global_crop_demand_food_feed_diff$diff) + 0.05 * max(global_crop_demand_food_feed_diff$diff)) * 1e-9
-# ymin <- 0
+<!-- # ymax <- (max(global_crop_demand_food_feed_diff$diff) + 0.05 * max(global_crop_demand_food_feed_diff$diff)) * 1e-9 -->
+<!-- # ymin <- 0 -->
 
-ymax <- 0.9
-ymin <- -0.55 
-
-
-p2a <- ggplot(
-  diet_diffs %>%
-    dplyr::filter(year %in% c(2025, 2050, 2075) &
-                    SCENARIO == "SSP1_v9_130115"),
-  aes(x = diet_plan_f,
-      y = pc_diff)
-) + 
-  geom_hline(yintercept = 0, alpha = 0.8) +
-  geom_col(aes(fill = crop_class), alpha = 0.8, position = "dodge") + 
-  scale_fill_manual(labels = c("feed for animals", "food for humans"), values = c(muted("magenta"), muted("green"))) + 
-  #  scale_fill_manual(
-  #   values = cols,
-  #   labels = labz
-  # ) + 
-  scale_y_continuous(labels = scales::label_percent(accuracy = 1)) + 
-  coord_cartesian(ylim = c(ymin, ymax)) +
-  theme_bw() + 
-  theme(
-    axis.text.x = element_text(
-      angle = 90,
-      hjust = 0,
-      vjust = 0.5
-    ),
-    axis.ticks.x = element_blank(),
-    axis.title.x = element_blank(),
-    legend.title = element_blank(), 
-    panel.grid.major.y = element_line(colour = "grey"), 
-    panel.grid.minor.y = element_line(colour = "grey"), 
-    panel.grid.major.x = element_blank(), 
-    panel.grid.minor.x = element_blank(), 
-    axis.title.y = element_text(size = 7)
-  ) +
-  labs(title = "SSP1", y = "Relative to 2018 demand") +
-  facet_wrap( ~ year)
-
-labz <- c("food", "feed")
-p2_legend_only <- cowplot::get_legend(p2a)
-
-p2a <- p2a +
-  theme(legend.position = "none")
-
-p2b <- ggplot(
-  diet_diffs %>%
-    dplyr::filter(year %in% c(2025, 2050, 2075) &
-                    SCENARIO == "SSP2_v9_130115"),
-   aes(x = diet_plan_f,
-      y = pc_diff)
-) +
-  geom_hline(yintercept = 0, alpha = 0.8) +
-  geom_col(aes(fill = crop_class), alpha = 0.8, position = "dodge") + 
-  scale_fill_manual(labels = c("feed for animals", "food for humans"), values = c(muted("magenta"), muted("green"))) + 
-  # scale_fill_manual(
-  #   values = cols,
-  #   labels = labz
-  # ) + 
-  scale_y_continuous(labels = scales::label_percent(accuracy = 1)) + 
-  coord_cartesian(ylim = c(ymin, ymax)) +
-  theme_bw() +
-  theme(
-    axis.text.x = element_text(
-      angle = 90,
-      hjust = 0,
-      vjust = 0.5
-    ),
-    axis.ticks.x = element_blank(),
-    axis.title.x = element_blank(),
-    legend.position = "none", 
-    panel.grid.major.y = element_line(colour = "grey"), 
-    panel.grid.minor.y = element_line(colour = "grey"), 
-    panel.grid.major.x = element_blank(), 
-    panel.grid.minor.x = element_blank(), 
-    axis.title.y = element_blank()
-  ) +
-  labs(title = "SSP2") +
-  facet_wrap( ~ year)
-
-p2c <- ggplot(
-  diet_diffs %>%
-    dplyr::filter(year %in% c(2025, 2050, 2075) &
-                    SCENARIO == "SSP3_v9_130115"),
-  aes(x = diet_plan_f,
-      y = pc_diff)
-) +
-  geom_hline(yintercept = 0, alpha = 0.8) +
-  geom_col(aes(fill = crop_class), alpha = 0.8, position = "dodge") + 
-  scale_fill_manual(labels = c("feed for animals", "food for humans"), values = c(muted("magenta"), muted("green"))) + 
-  # scale_fill_manual(
-  #   values = cols,
-  #   labels = labz
-  # ) + 
-  scale_y_continuous(labels = scales::label_percent(accuracy = 1)) + 
-  coord_cartesian(ylim = c(ymin, ymax)) +
-  theme_bw() +
-  theme(
-    axis.text.x = element_text(
-      angle = 90,
-      hjust = 0,
-      vjust = 0.5
-    ),
-    axis.ticks.x = element_blank(),
-    axis.title.x = element_blank(),
-    legend.position = "none", 
-    panel.grid.major.y = element_line(colour = "grey"), 
-    panel.grid.minor.y = element_line(colour = "grey"), 
-    panel.grid.major.x = element_blank(), 
-    panel.grid.minor.x = element_blank(), 
-    axis.title.y = element_blank()
-  ) +
-  labs(title = "SSP3") +
-  facet_wrap( ~ year)
-
-p2d <- ggplot(
-  diet_diffs %>%
-    dplyr::filter(year %in% c(2025, 2050, 2075) &
-                    SCENARIO == "SSP4d_v9_130115"),
-  aes(x = diet_plan_f,
-      y = pc_diff)
-) +
-  geom_hline(yintercept = 0, alpha = 0.8) +
-  geom_col(aes(fill = crop_class), alpha = 0.8, position = "dodge") + 
-  scale_fill_manual(labels = c("feed for animals", "food for humans"), values = c(muted("magenta"), muted("green"))) + 
-  # scale_fill_manual(
-  #   values = cols,
-  #   labels = labz
-  # ) + 
-  scale_y_continuous(labels = scales::label_percent(accuracy = 1)) + 
-  coord_cartesian(ylim = c(ymin, ymax)) +
-  theme_bw() +
-  theme(
-    axis.text.x = element_text(
-      angle = 90,
-      hjust = 0,
-      vjust = 0.5
-    ),
-    axis.ticks.x = element_blank(),
-    axis.title.x = element_blank(),
-    legend.position = "none", 
-    panel.grid.major.y = element_line(colour = "grey"), 
-    panel.grid.minor.y = element_line(colour = "grey"), 
-    panel.grid.major.x = element_blank(), 
-    panel.grid.minor.x = element_blank(), 
-    axis.title.y = element_blank()
-  ) +
-  labs(title = "SSP4") +
-  facet_wrap( ~ year)
-
-p2e <- ggplot(
-  diet_diffs %>%
-    dplyr::filter(year %in% c(2025, 2050, 2075) &
-                    SCENARIO == "SSP5_v9_130115"),
-  aes(x = diet_plan_f,
-      y = pc_diff)
-) +
-  geom_hline(yintercept = 0, alpha = 0.8) +
-  geom_col(aes(fill = crop_class), alpha = 0.8, position = "dodge") + 
-  scale_fill_manual(labels = c("feed for animals", "food for humans"), values = c(muted("magenta"), muted("green"))) + 
-  # scale_fill_manual(
-  #   values = cols,
-  #   labels = labz
-  # ) + 
-  scale_y_continuous(labels = scales::label_percent(accuracy = 1)) + 
-  coord_cartesian(ylim = c(ymin, ymax)) +
-  theme_bw() + 
-  theme(
-    axis.text.x = element_text(
-      angle = 90,
-      hjust = 0,
-      vjust = 0.5
-    ),
-    axis.ticks.x = element_blank(),
-    axis.title.x = element_blank(),
-    legend.position = "none", 
-    panel.grid.major.y = element_line(colour = "grey"), 
-    panel.grid.minor.y = element_line(colour = "grey"), 
-    panel.grid.major.x = element_blank(), 
-    panel.grid.minor.x = element_blank(), 
-    axis.title.y = element_text(size = 7)
-  ) +
-  labs(title = "SSP5", y = "Relative to 2018 demand") +
-  facet_wrap( ~ year)
-```
+<!-- ymax <- 0.9 -->
+<!-- ymin <- -0.55  -->
 
 
+<!-- p2a <- ggplot( -->
+<!--   diet_diffs %>% -->
+<!--     dplyr::filter(year %in% c(2025, 2050, 2075) & -->
+<!--                     SCENARIO == "SSP1_v9_130115"), -->
+<!--   aes(x = diet_plan_f, -->
+<!--       y = pc_diff) -->
+<!-- ) +  -->
+<!--   geom_hline(yintercept = 0, alpha = 0.8) + -->
+<!--   geom_col(aes(fill = crop_class), alpha = 0.8, position = "dodge") +  -->
+<!--   scale_fill_manual(labels = c("feed for animals", "food for humans"), values = c(muted("magenta"), muted("green"))) +  -->
+<!--   #  scale_fill_manual( -->
+<!--   #   values = cols, -->
+<!--   #   labels = labz -->
+<!--   # ) +  -->
+<!--   scale_y_continuous(labels = scales::label_percent(accuracy = 1)) +  -->
+<!--   coord_cartesian(ylim = c(ymin, ymax)) + -->
+<!--   theme_bw() +  -->
+<!--   theme( -->
+<!--     axis.text.x = element_text( -->
+<!--       angle = 90, -->
+<!--       hjust = 0, -->
+<!--       vjust = 0.5 -->
+<!--     ), -->
+<!--     axis.ticks.x = element_blank(), -->
+<!--     axis.title.x = element_blank(), -->
+<!--     legend.title = element_blank(),  -->
+<!--     panel.grid.major.y = element_line(colour = "grey"),  -->
+<!--     panel.grid.minor.y = element_line(colour = "grey"),  -->
+<!--     panel.grid.major.x = element_blank(),  -->
+<!--     panel.grid.minor.x = element_blank(),  -->
+<!--     axis.title.y = element_text(size = 7) -->
+<!--   ) + -->
+<!--   labs(title = "SSP1", y = "Relative to 2018 demand") + -->
+<!--   facet_wrap( ~ year) -->
 
-```{r}
-cols <- data.frame(
-  food = "#EEAF35", 
-  feed = "#F17EB8"
-)
-labz <- c("food", "feed")
+<!-- labz <- c("food", "feed") -->
+<!-- p2_legend_only <- cowplot::get_legend(p2a) -->
 
-diets <- c("ELA", "CNS", "USDA")
+<!-- p2a <- p2a + -->
+<!--   theme(legend.position = "none") -->
 
-# ymax <- (max(global_crop_demand_food_feed_diff$diff) + 0.05 * max(global_crop_demand_food_feed_diff$diff)) * 1e-9
-# ymin <- 0
+<!-- p2b <- ggplot( -->
+<!--   diet_diffs %>% -->
+<!--     dplyr::filter(year %in% c(2025, 2050, 2075) & -->
+<!--                     SCENARIO == "SSP2_v9_130115"), -->
+<!--    aes(x = diet_plan_f, -->
+<!--       y = pc_diff) -->
+<!-- ) + -->
+<!--   geom_hline(yintercept = 0, alpha = 0.8) + -->
+<!--   geom_col(aes(fill = crop_class), alpha = 0.8, position = "dodge") +  -->
+<!--   scale_fill_manual(labels = c("feed for animals", "food for humans"), values = c(muted("magenta"), muted("green"))) +  -->
+<!--   # scale_fill_manual( -->
+<!--   #   values = cols, -->
+<!--   #   labels = labz -->
+<!--   # ) +  -->
+<!--   scale_y_continuous(labels = scales::label_percent(accuracy = 1)) +  -->
+<!--   coord_cartesian(ylim = c(ymin, ymax)) + -->
+<!--   theme_bw() + -->
+<!--   theme( -->
+<!--     axis.text.x = element_text( -->
+<!--       angle = 90, -->
+<!--       hjust = 0, -->
+<!--       vjust = 0.5 -->
+<!--     ), -->
+<!--     axis.ticks.x = element_blank(), -->
+<!--     axis.title.x = element_blank(), -->
+<!--     legend.position = "none",  -->
+<!--     panel.grid.major.y = element_line(colour = "grey"),  -->
+<!--     panel.grid.minor.y = element_line(colour = "grey"),  -->
+<!--     panel.grid.major.x = element_blank(),  -->
+<!--     panel.grid.minor.x = element_blank(),  -->
+<!--     axis.title.y = element_blank() -->
+<!--   ) + -->
+<!--   labs(title = "SSP2") + -->
+<!--   facet_wrap( ~ year) -->
 
-ymax <- 3.5
-ymin <- -3 
+<!-- p2c <- ggplot( -->
+<!--   diet_diffs %>% -->
+<!--     dplyr::filter(year %in% c(2025, 2050, 2075) & -->
+<!--                     SCENARIO == "SSP3_v9_130115"), -->
+<!--   aes(x = diet_plan_f, -->
+<!--       y = pc_diff) -->
+<!-- ) + -->
+<!--   geom_hline(yintercept = 0, alpha = 0.8) + -->
+<!--   geom_col(aes(fill = crop_class), alpha = 0.8, position = "dodge") +  -->
+<!--   scale_fill_manual(labels = c("feed for animals", "food for humans"), values = c(muted("magenta"), muted("green"))) +  -->
+<!--   # scale_fill_manual( -->
+<!--   #   values = cols, -->
+<!--   #   labels = labz -->
+<!--   # ) +  -->
+<!--   scale_y_continuous(labels = scales::label_percent(accuracy = 1)) +  -->
+<!--   coord_cartesian(ylim = c(ymin, ymax)) + -->
+<!--   theme_bw() + -->
+<!--   theme( -->
+<!--     axis.text.x = element_text( -->
+<!--       angle = 90, -->
+<!--       hjust = 0, -->
+<!--       vjust = 0.5 -->
+<!--     ), -->
+<!--     axis.ticks.x = element_blank(), -->
+<!--     axis.title.x = element_blank(), -->
+<!--     legend.position = "none",  -->
+<!--     panel.grid.major.y = element_line(colour = "grey"),  -->
+<!--     panel.grid.minor.y = element_line(colour = "grey"),  -->
+<!--     panel.grid.major.x = element_blank(),  -->
+<!--     panel.grid.minor.x = element_blank(),  -->
+<!--     axis.title.y = element_blank() -->
+<!--   ) + -->
+<!--   labs(title = "SSP3") + -->
+<!--   facet_wrap( ~ year) -->
 
+<!-- p2d <- ggplot( -->
+<!--   diet_diffs %>% -->
+<!--     dplyr::filter(year %in% c(2025, 2050, 2075) & -->
+<!--                     SCENARIO == "SSP4d_v9_130115"), -->
+<!--   aes(x = diet_plan_f, -->
+<!--       y = pc_diff) -->
+<!-- ) + -->
+<!--   geom_hline(yintercept = 0, alpha = 0.8) + -->
+<!--   geom_col(aes(fill = crop_class), alpha = 0.8, position = "dodge") +  -->
+<!--   scale_fill_manual(labels = c("feed for animals", "food for humans"), values = c(muted("magenta"), muted("green"))) +  -->
+<!--   # scale_fill_manual( -->
+<!--   #   values = cols, -->
+<!--   #   labels = labz -->
+<!--   # ) +  -->
+<!--   scale_y_continuous(labels = scales::label_percent(accuracy = 1)) +  -->
+<!--   coord_cartesian(ylim = c(ymin, ymax)) + -->
+<!--   theme_bw() + -->
+<!--   theme( -->
+<!--     axis.text.x = element_text( -->
+<!--       angle = 90, -->
+<!--       hjust = 0, -->
+<!--       vjust = 0.5 -->
+<!--     ), -->
+<!--     axis.ticks.x = element_blank(), -->
+<!--     axis.title.x = element_blank(), -->
+<!--     legend.position = "none",  -->
+<!--     panel.grid.major.y = element_line(colour = "grey"),  -->
+<!--     panel.grid.minor.y = element_line(colour = "grey"),  -->
+<!--     panel.grid.major.x = element_blank(),  -->
+<!--     panel.grid.minor.x = element_blank(),  -->
+<!--     axis.title.y = element_blank() -->
+<!--   ) + -->
+<!--   labs(title = "SSP4") + -->
+<!--   facet_wrap( ~ year) -->
 
-p3a <- ggplot(
-  diet_diffs %>%
-    dplyr::filter(year %in% c(2025, 2050, 2075) &
-                    SCENARIO == "SSP1_v9_130115"),
-  aes(x = diet_plan_f,
-      y = diff * 1e-9)
-) + 
-  geom_hline(yintercept = 0, alpha = 0.8) +
-  geom_col(aes(fill = crop_class), alpha = 0.8, position = "stack") + 
-  scale_fill_manual(labels = c("feed for animals", "food for humans"), values = c(muted("magenta"), muted("green"))) + 
-  scale_x_discrete(labels = diets) + 
-  #  scale_fill_manual(
-  #   values = cols,
-  #   labels = labz
-  # ) + 
-  coord_cartesian(ylim = c(ymin, ymax)) +
-  theme_bw() + 
-  theme(
-    axis.text.x = element_text(
-      angle = 90,
-      hjust = 0,
-      vjust = 0.5, 
-      size = 7
-    ),
-    axis.ticks.x = element_blank(),
-    axis.title.x = element_blank(),
-    legend.title = element_blank(), 
-    panel.grid.major.y = element_line(colour = "grey"), 
-    panel.grid.minor.y = element_line(colour = "grey"), 
-    panel.grid.major.x = element_blank(), 
-    panel.grid.minor.x = element_blank(), 
-    axis.title.y = element_text(size = 7)
-  ) +
-  labs(title = "SSP1", y = "Gt over 2018 demand") +
-  facet_wrap( ~ year)
-
-p3_legend_only <- cowplot::get_legend(p3a)
-
-p3a <- p3a +
-  theme(legend.position = "none")
-
-p3b <- ggplot(
-  diet_diffs %>%
-    dplyr::filter(year %in% c(2025, 2050, 2075) &
-                    SCENARIO == "SSP2_v9_130115"),
-   aes(x = diet_plan_f,
-      y = diff * 1e-9)
-) +
-  geom_hline(yintercept = 0, alpha = 0.8) +
-  geom_col(aes(fill = crop_class), alpha = 0.8, position = "stack") + 
-  scale_fill_manual(labels = c("feed for animals", "food for humans"), values = c(muted("magenta"), muted("green"))) + 
-  scale_x_discrete(labels = diets) + 
-  # scale_fill_manual(
-  #   values = cols,
-  #   labels = labz
-  # ) + 
-  coord_cartesian(ylim = c(ymin, ymax)) +
-  theme_bw() +
-  theme(
-    axis.text.x = element_text(
-      angle = 90,
-      hjust = 0,
-      vjust = 0.5, 
-      size = 7
-    ),
-    axis.ticks.x = element_blank(),
-    axis.title.x = element_blank(),
-    legend.position = "none", 
-    panel.grid.major.y = element_line(colour = "grey"), 
-    panel.grid.minor.y = element_line(colour = "grey"), 
-    panel.grid.major.x = element_blank(), 
-    panel.grid.minor.x = element_blank(), 
-    axis.title.y = element_blank()
-  ) +
-  labs(title = "SSP2") +
-  facet_wrap( ~ year)
-
-p3c <- ggplot(
-  diet_diffs %>%
-    dplyr::filter(year %in% c(2025, 2050, 2075) &
-                    SCENARIO == "SSP3_v9_130115"),
-  aes(x = diet_plan_f,
-      y = diff * 1e-9)
-) +
-  geom_hline(yintercept = 0, alpha = 0.8) +
-  geom_col(aes(fill = crop_class), alpha = 0.8, position = "stack") + 
-  scale_fill_manual(labels = c("feed for animals", "food for humans"), values = c(muted("magenta"), muted("green"))) + 
-  scale_x_discrete(labels = diets) + 
-  # scale_fill_manual(
-  #   values = cols,
-  #   labels = labz
-  # ) + 
-  coord_cartesian(ylim = c(ymin, ymax)) +
-  theme_bw() +
-  theme(
-    axis.text.x = element_text(
-      angle = 90,
-      hjust = 0,
-      vjust = 0.5, 
-      size = 7
-    ),
-    axis.ticks.x = element_blank(),
-    axis.title.x = element_blank(),
-    legend.position = "none", 
-    panel.grid.major.y = element_line(colour = "grey"), 
-    panel.grid.minor.y = element_line(colour = "grey"), 
-    panel.grid.major.x = element_blank(), 
-    panel.grid.minor.x = element_blank(), 
-    axis.title.y = element_blank()
-  ) +
-  labs(title = "SSP3") +
-  facet_wrap( ~ year)
-
-p3d <- ggplot(
-  diet_diffs %>%
-    dplyr::filter(year %in% c(2025, 2050, 2075) &
-                    SCENARIO == "SSP4d_v9_130115"),
-  aes(x = diet_plan_f,
-      y = diff * 1e-9)
-) +
-  geom_hline(yintercept = 0, alpha = 0.8) +
-  geom_col(aes(fill = crop_class), alpha = 0.8, position = "stack") + 
-  scale_fill_manual(labels = c("feed for animals", "food for humans"), values = c(muted("magenta"), muted("green"))) + 
-  scale_x_discrete(labels = diets) + 
-  # scale_fill_manual(
-  #   values = cols,
-  #   labels = labz
-  # ) + 
-  coord_cartesian(ylim = c(ymin, ymax)) +
-  theme_bw() +
-  theme(
-    axis.text.x = element_text(
-      angle = 90,
-      hjust = 0,
-      vjust = 0.5, 
-      size = 7
-    ),
-    axis.ticks.x = element_blank(),
-    axis.title.x = element_blank(),
-    legend.position = "none", 
-    panel.grid.major.y = element_line(colour = "grey"), 
-    panel.grid.minor.y = element_line(colour = "grey"), 
-    panel.grid.major.x = element_blank(), 
-    panel.grid.minor.x = element_blank(), 
-    axis.title.y = element_blank()
-  ) +
-  labs(title = "SSP4") +
-  facet_wrap( ~ year)
-
-p3e <- ggplot(
-  diet_diffs %>%
-    dplyr::filter(year %in% c(2025, 2050, 2075) &
-                    SCENARIO == "SSP5_v9_130115"),
-  aes(x = diet_plan_f,
-      y = diff * 1e-9)
-) +
-  geom_hline(yintercept = 0, alpha = 0.8) +
-  geom_col(aes(fill = crop_class), alpha = 0.8, position = "stack") + 
-  scale_fill_manual(labels = c("feed for animals", "food for humans"), values = c(muted("magenta"), muted("green"))) + 
-  scale_x_discrete(labels = diets) + 
-  # scale_fill_manual(
-  #   values = cols,
-  #   labels = labz
-  # ) + 
-  coord_cartesian(ylim = c(ymin, ymax)) +
-  theme_bw() + 
-  theme(
-    axis.text.x = element_text(
-      angle = 90,
-      hjust = 0,
-      vjust = 0.5, 
-      size = 7
-    ),
-    axis.ticks.x = element_blank(),
-    axis.title.x = element_blank(),
-    legend.position = "none", 
-    panel.grid.major.y = element_line(colour = "grey"), 
-    panel.grid.minor.y = element_line(colour = "grey"), 
-    panel.grid.major.x = element_blank(), 
-    panel.grid.minor.x = element_blank(), 
-    axis.title.y = element_text(size = 7)
-  ) +
-  labs(title = "SSP5", y = "Gt over 2018 demand") +
-  facet_wrap( ~ year)
-```
-
-```{r}
-
-pa <- plot_grid(p3e, p3a, ncol = 1)
-pb <- plot_grid(p3_legend_only, p3b, NA, ncol = 1, rel_heights = c(0.5, 1, 0.5))
-pc <- plot_grid(p3c, p3d, ncol = 1)
-
-p3 <- cowplot::plot_grid(pa, pb, pc, ncol = 3)
-
-grDevices::jpeg(filename = "Plots/figure_S4a.jpg", 
-               width = 750, 
-               height = 500, 
-               units = "px", 
-               quality = 1)
-cowplot::plot_grid(mitigate_arrow, p3, NA, adapt_arrow, ncol = 2, rel_widths = c(0.1, 0.9), rel_heights = c(0.9, 0.1))
-
-dev.off()
-
-# p3 <- cowplot::plot_grid(p3a, p3b, p3c, p3d, p3e, p3_legend_only)
-# p3
-
-```
-
-```{r}
-out <- diet_diffs %>% 
-  dplyr::filter(!SCENARIO %in% "FAO") %>% 
-  dplyr::group_by(year, crop_class) %>% 
-  dplyr::summarise(max_diff = max(diff) * 1e-9, 
-                min_diff = min(diff) * 1e-9, 
-                max_pc_diff = max(pc_diff), 
-                min_pc_diff = min(pc_diff), 
-                .groups = "drop") %>% 
-  dplyr::mutate(across(.cols = max_diff:min_pc_diff, ~ round(.x,2))) %>% 
-  dplyr::filter(year %in% c(2025, 2050, 2075))
-out
-```
+<!-- p2e <- ggplot( -->
+<!--   diet_diffs %>% -->
+<!--     dplyr::filter(year %in% c(2025, 2050, 2075) & -->
+<!--                     SCENARIO == "SSP5_v9_130115"), -->
+<!--   aes(x = diet_plan_f, -->
+<!--       y = pc_diff) -->
+<!-- ) + -->
+<!--   geom_hline(yintercept = 0, alpha = 0.8) + -->
+<!--   geom_col(aes(fill = crop_class), alpha = 0.8, position = "dodge") +  -->
+<!--   scale_fill_manual(labels = c("feed for animals", "food for humans"), values = c(muted("magenta"), muted("green"))) +  -->
+<!--   # scale_fill_manual( -->
+<!--   #   values = cols, -->
+<!--   #   labels = labz -->
+<!--   # ) +  -->
+<!--   scale_y_continuous(labels = scales::label_percent(accuracy = 1)) +  -->
+<!--   coord_cartesian(ylim = c(ymin, ymax)) + -->
+<!--   theme_bw() +  -->
+<!--   theme( -->
+<!--     axis.text.x = element_text( -->
+<!--       angle = 90, -->
+<!--       hjust = 0, -->
+<!--       vjust = 0.5 -->
+<!--     ), -->
+<!--     axis.ticks.x = element_blank(), -->
+<!--     axis.title.x = element_blank(), -->
+<!--     legend.position = "none",  -->
+<!--     panel.grid.major.y = element_line(colour = "grey"),  -->
+<!--     panel.grid.minor.y = element_line(colour = "grey"),  -->
+<!--     panel.grid.major.x = element_blank(),  -->
+<!--     panel.grid.minor.x = element_blank(),  -->
+<!--     axis.title.y = element_text(size = 7) -->
+<!--   ) + -->
+<!--   labs(title = "SSP5", y = "Relative to 2018 demand") + -->
+<!--   facet_wrap( ~ year) -->
+<!-- ``` -->
 
 
-Relative change.
 
-```{r}
-ymax <- 0.9
-ymin <- -0.6
+<!-- ```{r} -->
+<!-- cols <- data.frame( -->
+<!--   food = "#EEAF35",  -->
+<!--   feed = "#F17EB8" -->
+<!-- ) -->
+<!-- labz <- c("food", "feed") -->
+
+<!-- diets <- c("ELA", "CNS", "USDA") -->
+
+<!-- # ymax <- (max(global_crop_demand_food_feed_diff$diff) + 0.05 * max(global_crop_demand_food_feed_diff$diff)) * 1e-9 -->
+<!-- # ymin <- 0 -->
+
+<!-- ymax <- 3.5 -->
+<!-- ymin <- -3  -->
 
 
-p4a <- ggplot(
-  diet_diffs %>%
-    dplyr::filter(year %in% c(2025, 2050, 2075) &
-                    SCENARIO == "SSP1_v9_130115"),
-  aes(x = diet_plan_f,
-      y = pc_diff)
-) + 
-  geom_hline(yintercept = 0, alpha = 0.8) +
-  geom_col(aes(fill = crop_class), alpha = 0.8, position = "dodge") + 
-  scale_fill_manual(labels = c("feed for animals", "food for humans"), values = c(muted("magenta"), muted("green"))) + 
-  scale_x_discrete(labels = diets) + 
-  #  scale_fill_manual(
-  #   values = cols,
-  #   labels = labz
-  # ) + 
-  scale_y_continuous(labels = scales::label_percent(accuracy = 1)) + 
-  coord_cartesian(ylim = c(ymin, ymax)) +
-  theme_bw() + 
-  theme(
-    axis.text.x = element_text(
-      angle = 90,
-      hjust = 0,
-      vjust = 0.5, 
-      size = 7
-    ),
-    axis.ticks.x = element_blank(),
-    axis.title.x = element_blank(),
-    legend.title = element_blank(), 
-    panel.grid.major.y = element_line(colour = "grey"), 
-    panel.grid.minor.y = element_line(colour = "grey"), 
-    panel.grid.major.x = element_blank(), 
-    panel.grid.minor.x = element_blank(), 
-    axis.title.y = element_text(size = 7)
-  ) +
-  labs(title = "SSP1", y = "Change over 2018 supply") +
-  facet_wrap( ~ year)
+<!-- p3a <- ggplot( -->
+<!--   diet_diffs %>% -->
+<!--     dplyr::filter(year %in% c(2025, 2050, 2075) & -->
+<!--                     SCENARIO == "SSP1_v9_130115"), -->
+<!--   aes(x = diet_plan_f, -->
+<!--       y = diff * 1e-9) -->
+<!-- ) +  -->
+<!--   geom_hline(yintercept = 0, alpha = 0.8) + -->
+<!--   geom_col(aes(fill = crop_class), alpha = 0.8, position = "stack") +  -->
+<!--   scale_fill_manual(labels = c("feed for animals", "food for humans"), values = c(muted("magenta"), muted("green"))) +  -->
+<!--   scale_x_discrete(labels = diets) +  -->
+<!--   #  scale_fill_manual( -->
+<!--   #   values = cols, -->
+<!--   #   labels = labz -->
+<!--   # ) +  -->
+<!--   coord_cartesian(ylim = c(ymin, ymax)) + -->
+<!--   theme_bw() +  -->
+<!--   theme( -->
+<!--     axis.text.x = element_text( -->
+<!--       angle = 90, -->
+<!--       hjust = 0, -->
+<!--       vjust = 0.5,  -->
+<!--       size = 7 -->
+<!--     ), -->
+<!--     axis.ticks.x = element_blank(), -->
+<!--     axis.title.x = element_blank(), -->
+<!--     legend.title = element_blank(),  -->
+<!--     panel.grid.major.y = element_line(colour = "grey"),  -->
+<!--     panel.grid.minor.y = element_line(colour = "grey"),  -->
+<!--     panel.grid.major.x = element_blank(),  -->
+<!--     panel.grid.minor.x = element_blank(),  -->
+<!--     axis.title.y = element_text(size = 7) -->
+<!--   ) + -->
+<!--   labs(title = "SSP1", y = "Gt over 2018 demand") + -->
+<!--   facet_wrap( ~ year) -->
 
-p4_legend_only <- cowplot::get_legend(p4a)
+<!-- p3_legend_only <- cowplot::get_legend(p3a) -->
 
-p4a <- p4a +
-  theme(legend.position = "none")
+<!-- p3a <- p3a + -->
+<!--   theme(legend.position = "none") -->
 
-p4b <- ggplot(
-  diet_diffs %>%
-    dplyr::filter(year %in% c(2025, 2050, 2075) &
-                    SCENARIO == "SSP2_v9_130115"),
-   aes(x = diet_plan_f,
-      y = pc_diff)
-) +
-  geom_hline(yintercept = 0, alpha = 0.8) +
-  geom_col(aes(fill = crop_class), alpha = 0.8, position = "dodge") + 
-  scale_fill_manual(labels = c("feed for animals", "food for humans"), values = c(muted("magenta"), muted("green"))) + 
-  scale_x_discrete(labels = diets) + 
-  # scale_fill_manual(
-  #   values = cols,
-  #   labels = labz
-  # ) + 
-  scale_y_continuous(labels = scales::label_percent(accuracy = 1)) + 
-  coord_cartesian(ylim = c(ymin, ymax)) +
-  theme_bw() +
-  theme(
-    axis.text.x = element_text(
-      angle = 90,
-      hjust = 0,
-      vjust = 0.5, 
-      size = 7
-    ),
-    axis.ticks.x = element_blank(),
-    axis.title.x = element_blank(),
-    legend.position = "none", 
-    panel.grid.major.y = element_line(colour = "grey"), 
-    panel.grid.minor.y = element_line(colour = "grey"), 
-    panel.grid.major.x = element_blank(), 
-    panel.grid.minor.x = element_blank(), 
-    axis.title.y = element_blank()
-  ) +
-  labs(title = "SSP2") +
-  facet_wrap( ~ year)
+<!-- p3b <- ggplot( -->
+<!--   diet_diffs %>% -->
+<!--     dplyr::filter(year %in% c(2025, 2050, 2075) & -->
+<!--                     SCENARIO == "SSP2_v9_130115"), -->
+<!--    aes(x = diet_plan_f, -->
+<!--       y = diff * 1e-9) -->
+<!-- ) + -->
+<!--   geom_hline(yintercept = 0, alpha = 0.8) + -->
+<!--   geom_col(aes(fill = crop_class), alpha = 0.8, position = "stack") +  -->
+<!--   scale_fill_manual(labels = c("feed for animals", "food for humans"), values = c(muted("magenta"), muted("green"))) +  -->
+<!--   scale_x_discrete(labels = diets) +  -->
+<!--   # scale_fill_manual( -->
+<!--   #   values = cols, -->
+<!--   #   labels = labz -->
+<!--   # ) +  -->
+<!--   coord_cartesian(ylim = c(ymin, ymax)) + -->
+<!--   theme_bw() + -->
+<!--   theme( -->
+<!--     axis.text.x = element_text( -->
+<!--       angle = 90, -->
+<!--       hjust = 0, -->
+<!--       vjust = 0.5,  -->
+<!--       size = 7 -->
+<!--     ), -->
+<!--     axis.ticks.x = element_blank(), -->
+<!--     axis.title.x = element_blank(), -->
+<!--     legend.position = "none",  -->
+<!--     panel.grid.major.y = element_line(colour = "grey"),  -->
+<!--     panel.grid.minor.y = element_line(colour = "grey"),  -->
+<!--     panel.grid.major.x = element_blank(),  -->
+<!--     panel.grid.minor.x = element_blank(),  -->
+<!--     axis.title.y = element_blank() -->
+<!--   ) + -->
+<!--   labs(title = "SSP2") + -->
+<!--   facet_wrap( ~ year) -->
 
-p4c <- ggplot(
-  diet_diffs %>%
-    dplyr::filter(year %in% c(2025, 2050, 2075) &
-                    SCENARIO == "SSP3_v9_130115"),
-  aes(x = diet_plan_f,
-      y = pc_diff)
-) +
-  geom_hline(yintercept = 0, alpha = 0.8) +
-  geom_col(aes(fill = crop_class), alpha = 0.8, position = "dodge") + 
-  scale_fill_manual(labels = c("feed for animals", "food for humans"), values = c(muted("magenta"), muted("green"))) + 
-  scale_x_discrete(labels = diets) + 
-  # scale_fill_manual(
-  #   values = cols,
-  #   labels = labz
-  # ) + 
-  scale_y_continuous(labels = scales::label_percent(accuracy = 1)) + 
-  coord_cartesian(ylim = c(ymin, ymax)) +
-  theme_bw() +
-  theme(
-    axis.text.x = element_text(
-      angle = 90,
-      hjust = 0,
-      vjust = 0.5, 
-      size = 7
-    ),
-    axis.ticks.x = element_blank(),
-    axis.title.x = element_blank(),
-    legend.position = "none", 
-    panel.grid.major.y = element_line(colour = "grey"), 
-    panel.grid.minor.y = element_line(colour = "grey"), 
-    panel.grid.major.x = element_blank(), 
-    panel.grid.minor.x = element_blank(), 
-    axis.title.y = element_blank()
-  ) +
-  labs(title = "SSP3") +
-  facet_wrap( ~ year)
+<!-- p3c <- ggplot( -->
+<!--   diet_diffs %>% -->
+<!--     dplyr::filter(year %in% c(2025, 2050, 2075) & -->
+<!--                     SCENARIO == "SSP3_v9_130115"), -->
+<!--   aes(x = diet_plan_f, -->
+<!--       y = diff * 1e-9) -->
+<!-- ) + -->
+<!--   geom_hline(yintercept = 0, alpha = 0.8) + -->
+<!--   geom_col(aes(fill = crop_class), alpha = 0.8, position = "stack") +  -->
+<!--   scale_fill_manual(labels = c("feed for animals", "food for humans"), values = c(muted("magenta"), muted("green"))) +  -->
+<!--   scale_x_discrete(labels = diets) +  -->
+<!--   # scale_fill_manual( -->
+<!--   #   values = cols, -->
+<!--   #   labels = labz -->
+<!--   # ) +  -->
+<!--   coord_cartesian(ylim = c(ymin, ymax)) + -->
+<!--   theme_bw() + -->
+<!--   theme( -->
+<!--     axis.text.x = element_text( -->
+<!--       angle = 90, -->
+<!--       hjust = 0, -->
+<!--       vjust = 0.5,  -->
+<!--       size = 7 -->
+<!--     ), -->
+<!--     axis.ticks.x = element_blank(), -->
+<!--     axis.title.x = element_blank(), -->
+<!--     legend.position = "none",  -->
+<!--     panel.grid.major.y = element_line(colour = "grey"),  -->
+<!--     panel.grid.minor.y = element_line(colour = "grey"),  -->
+<!--     panel.grid.major.x = element_blank(),  -->
+<!--     panel.grid.minor.x = element_blank(),  -->
+<!--     axis.title.y = element_blank() -->
+<!--   ) + -->
+<!--   labs(title = "SSP3") + -->
+<!--   facet_wrap( ~ year) -->
 
-p4d <- ggplot(
-  diet_diffs %>%
-    dplyr::filter(year %in% c(2025, 2050, 2075) &
-                    SCENARIO == "SSP4d_v9_130115"),
-  aes(x = diet_plan_f,
-      y = pc_diff)
-) +
-  geom_hline(yintercept = 0, alpha = 0.8) +
-  geom_col(aes(fill = crop_class), alpha = 0.8, position = "dodge") + 
-  scale_fill_manual(labels = c("feed for animals", "food for humans"), values = c(muted("magenta"), muted("green"))) + 
-  scale_x_discrete(labels = diets) + 
-  # scale_fill_manual(
-  #   values = cols,
-  #   labels = labz
-  # ) + 
-  scale_y_continuous(labels = scales::label_percent(accuracy = 1)) + 
-  coord_cartesian(ylim = c(ymin, ymax)) +
-  theme_bw() +
-  theme(
-    axis.text.x = element_text(
-      angle = 90,
-      hjust = 0,
-      vjust = 0.5, 
-      size = 7
-    ),
-    axis.ticks.x = element_blank(),
-    axis.title.x = element_blank(),
-    legend.position = "none", 
-    panel.grid.major.y = element_line(colour = "grey"), 
-    panel.grid.minor.y = element_line(colour = "grey"), 
-    panel.grid.major.x = element_blank(), 
-    panel.grid.minor.x = element_blank(), 
-    axis.title.y = element_blank()
-  ) +
-  labs(title = "SSP4") +
-  facet_wrap( ~ year)
+<!-- p3d <- ggplot( -->
+<!--   diet_diffs %>% -->
+<!--     dplyr::filter(year %in% c(2025, 2050, 2075) & -->
+<!--                     SCENARIO == "SSP4d_v9_130115"), -->
+<!--   aes(x = diet_plan_f, -->
+<!--       y = diff * 1e-9) -->
+<!-- ) + -->
+<!--   geom_hline(yintercept = 0, alpha = 0.8) + -->
+<!--   geom_col(aes(fill = crop_class), alpha = 0.8, position = "stack") +  -->
+<!--   scale_fill_manual(labels = c("feed for animals", "food for humans"), values = c(muted("magenta"), muted("green"))) +  -->
+<!--   scale_x_discrete(labels = diets) +  -->
+<!--   # scale_fill_manual( -->
+<!--   #   values = cols, -->
+<!--   #   labels = labz -->
+<!--   # ) +  -->
+<!--   coord_cartesian(ylim = c(ymin, ymax)) + -->
+<!--   theme_bw() + -->
+<!--   theme( -->
+<!--     axis.text.x = element_text( -->
+<!--       angle = 90, -->
+<!--       hjust = 0, -->
+<!--       vjust = 0.5,  -->
+<!--       size = 7 -->
+<!--     ), -->
+<!--     axis.ticks.x = element_blank(), -->
+<!--     axis.title.x = element_blank(), -->
+<!--     legend.position = "none",  -->
+<!--     panel.grid.major.y = element_line(colour = "grey"),  -->
+<!--     panel.grid.minor.y = element_line(colour = "grey"),  -->
+<!--     panel.grid.major.x = element_blank(),  -->
+<!--     panel.grid.minor.x = element_blank(),  -->
+<!--     axis.title.y = element_blank() -->
+<!--   ) + -->
+<!--   labs(title = "SSP4") + -->
+<!--   facet_wrap( ~ year) -->
 
-p4e <- ggplot(
-  diet_diffs %>%
-    dplyr::filter(year %in% c(2025, 2050, 2075) &
-                    SCENARIO == "SSP5_v9_130115"),
-  aes(x = diet_plan_f,
-      y = pc_diff)
-) +
-  geom_hline(yintercept = 0, alpha = 0.8) +
-  geom_col(aes(fill = crop_class), alpha = 0.8, position = "dodge") + 
-  scale_fill_manual(labels = c("feed for animals", "food for humans"), values = c(muted("magenta"), muted("green"))) + 
-  scale_x_discrete(labels = diets) + 
-  # scale_fill_manual(
-  #   values = cols,
-  #   labels = labz
-  # ) + 
-  scale_y_continuous(labels = scales::label_percent(accuracy = 1)) + 
-  coord_cartesian(ylim = c(ymin, ymax)) +
-  theme_bw() + 
-  theme(
-    axis.text.x = element_text(
-      angle = 90,
-      hjust = 0,
-      vjust = 0.5, 
-      size = 7
-    ),
-    axis.ticks.x = element_blank(),
-    axis.title.x = element_blank(),
-    legend.position = "none", 
-    panel.grid.major.y = element_line(colour = "grey"), 
-    panel.grid.minor.y = element_line(colour = "grey"), 
-    panel.grid.major.x = element_blank(), 
-    panel.grid.minor.x = element_blank(), 
-    axis.title.y = element_text(size = 7)
-  ) +
-  labs(title = "SSP5", y = "Change over 2018 supply") +
-  facet_wrap( ~ year)
+<!-- p3e <- ggplot( -->
+<!--   diet_diffs %>% -->
+<!--     dplyr::filter(year %in% c(2025, 2050, 2075) & -->
+<!--                     SCENARIO == "SSP5_v9_130115"), -->
+<!--   aes(x = diet_plan_f, -->
+<!--       y = diff * 1e-9) -->
+<!-- ) + -->
+<!--   geom_hline(yintercept = 0, alpha = 0.8) + -->
+<!--   geom_col(aes(fill = crop_class), alpha = 0.8, position = "stack") +  -->
+<!--   scale_fill_manual(labels = c("feed for animals", "food for humans"), values = c(muted("magenta"), muted("green"))) +  -->
+<!--   scale_x_discrete(labels = diets) +  -->
+<!--   # scale_fill_manual( -->
+<!--   #   values = cols, -->
+<!--   #   labels = labz -->
+<!--   # ) +  -->
+<!--   coord_cartesian(ylim = c(ymin, ymax)) + -->
+<!--   theme_bw() +  -->
+<!--   theme( -->
+<!--     axis.text.x = element_text( -->
+<!--       angle = 90, -->
+<!--       hjust = 0, -->
+<!--       vjust = 0.5,  -->
+<!--       size = 7 -->
+<!--     ), -->
+<!--     axis.ticks.x = element_blank(), -->
+<!--     axis.title.x = element_blank(), -->
+<!--     legend.position = "none",  -->
+<!--     panel.grid.major.y = element_line(colour = "grey"),  -->
+<!--     panel.grid.minor.y = element_line(colour = "grey"),  -->
+<!--     panel.grid.major.x = element_blank(),  -->
+<!--     panel.grid.minor.x = element_blank(),  -->
+<!--     axis.title.y = element_text(size = 7) -->
+<!--   ) + -->
+<!--   labs(title = "SSP5", y = "Gt over 2018 demand") + -->
+<!--   facet_wrap( ~ year) -->
+<!-- ``` -->
 
-```
+<!-- ```{r} -->
 
-```{r}
+<!-- pa <- plot_grid(p3e, p3a, ncol = 1) -->
+<!-- pb <- plot_grid(p3_legend_only, p3b, NA, ncol = 1, rel_heights = c(0.5, 1, 0.5)) -->
+<!-- pc <- plot_grid(p3c, p3d, ncol = 1) -->
 
-pa <- plot_grid(p4e, p4a, ncol = 1)
-pb <- plot_grid(p4_legend_only, p4b, NA, ncol = 1, rel_heights = c(0.5, 1, 0.5))
-pc <- plot_grid(p4c, p4d, ncol = 1)
+<!-- p3 <- cowplot::plot_grid(pa, pb, pc, ncol = 3) -->
 
-p3 <- cowplot::plot_grid(pa, pb, pc, ncol = 3)
-cowplot::plot_grid(mitigate_arrow, p3, NA, adapt_arrow, ncol = 2, rel_widths = c(0.1, 0.9), rel_heights = c(0.9, 0.1))
+<!-- grDevices::jpeg(filename = "Plots/figure_S4a.jpg",  -->
+<!--                width = 750,  -->
+<!--                height = 500,  -->
+<!--                units = "px",  -->
+<!--                quality = 1) -->
+<!-- cowplot::plot_grid(mitigate_arrow, p3, NA, adapt_arrow, ncol = 2, rel_widths = c(0.1, 0.9), rel_heights = c(0.9, 0.1)) -->
 
-grDevices::jpeg(filename = "Plots/figure_S4b.jpg", 
-               width = 750, 
-               height = 500, 
-               units = "px", 
-               quality = 1)
-cowplot::plot_grid(mitigate_arrow, p3, NA, adapt_arrow, ncol = 2, rel_widths = c(0.1, 0.9), rel_heights = c(0.9, 0.1))
-dev.off()
+<!-- dev.off() -->
 
-# p3 <- cowplot::plot_grid(p3a, p3b, p3c, p3d, p3e, p3_legend_only)
-# p3
-```
+<!-- # p3 <- cowplot::plot_grid(p3a, p3b, p3c, p3d, p3e, p3_legend_only) -->
+<!-- # p3 -->
+
+<!-- ``` -->
+
+<!-- ```{r} -->
+<!-- out <- diet_diffs %>%  -->
+<!--   dplyr::filter(!SCENARIO %in% "FAO") %>%  -->
+<!--   dplyr::group_by(year, crop_class) %>%  -->
+<!--   dplyr::summarise(max_diff = max(diff) * 1e-9,  -->
+<!--                 min_diff = min(diff) * 1e-9,  -->
+<!--                 max_pc_diff = max(pc_diff),  -->
+<!--                 min_pc_diff = min(pc_diff),  -->
+<!--                 .groups = "drop") %>%  -->
+<!--   dplyr::mutate(across(.cols = max_diff:min_pc_diff, ~ round(.x,2))) %>%  -->
+<!--   dplyr::filter(year %in% c(2025, 2050, 2075)) -->
+<!-- out -->
+<!-- ``` -->
+
+
+<!-- Relative change. -->
+
+<!-- ```{r} -->
+<!-- ymax <- 0.9 -->
+<!-- ymin <- -0.6 -->
+
+
+<!-- p4a <- ggplot( -->
+<!--   diet_diffs %>% -->
+<!--     dplyr::filter(year %in% c(2025, 2050, 2075) & -->
+<!--                     SCENARIO == "SSP1_v9_130115"), -->
+<!--   aes(x = diet_plan_f, -->
+<!--       y = pc_diff) -->
+<!-- ) +  -->
+<!--   geom_hline(yintercept = 0, alpha = 0.8) + -->
+<!--   geom_col(aes(fill = crop_class), alpha = 0.8, position = "dodge") +  -->
+<!--   scale_fill_manual(labels = c("feed for animals", "food for humans"), values = c(muted("magenta"), muted("green"))) +  -->
+<!--   scale_x_discrete(labels = diets) +  -->
+<!--   #  scale_fill_manual( -->
+<!--   #   values = cols, -->
+<!--   #   labels = labz -->
+<!--   # ) +  -->
+<!--   scale_y_continuous(labels = scales::label_percent(accuracy = 1)) +  -->
+<!--   coord_cartesian(ylim = c(ymin, ymax)) + -->
+<!--   theme_bw() +  -->
+<!--   theme( -->
+<!--     axis.text.x = element_text( -->
+<!--       angle = 90, -->
+<!--       hjust = 0, -->
+<!--       vjust = 0.5,  -->
+<!--       size = 7 -->
+<!--     ), -->
+<!--     axis.ticks.x = element_blank(), -->
+<!--     axis.title.x = element_blank(), -->
+<!--     legend.title = element_blank(),  -->
+<!--     panel.grid.major.y = element_line(colour = "grey"),  -->
+<!--     panel.grid.minor.y = element_line(colour = "grey"),  -->
+<!--     panel.grid.major.x = element_blank(),  -->
+<!--     panel.grid.minor.x = element_blank(),  -->
+<!--     axis.title.y = element_text(size = 7) -->
+<!--   ) + -->
+<!--   labs(title = "SSP1", y = "Change over 2018 supply") + -->
+<!--   facet_wrap( ~ year) -->
+
+<!-- p4_legend_only <- cowplot::get_legend(p4a) -->
+
+<!-- p4a <- p4a + -->
+<!--   theme(legend.position = "none") -->
+
+<!-- p4b <- ggplot( -->
+<!--   diet_diffs %>% -->
+<!--     dplyr::filter(year %in% c(2025, 2050, 2075) & -->
+<!--                     SCENARIO == "SSP2_v9_130115"), -->
+<!--    aes(x = diet_plan_f, -->
+<!--       y = pc_diff) -->
+<!-- ) + -->
+<!--   geom_hline(yintercept = 0, alpha = 0.8) + -->
+<!--   geom_col(aes(fill = crop_class), alpha = 0.8, position = "dodge") +  -->
+<!--   scale_fill_manual(labels = c("feed for animals", "food for humans"), values = c(muted("magenta"), muted("green"))) +  -->
+<!--   scale_x_discrete(labels = diets) +  -->
+<!--   # scale_fill_manual( -->
+<!--   #   values = cols, -->
+<!--   #   labels = labz -->
+<!--   # ) +  -->
+<!--   scale_y_continuous(labels = scales::label_percent(accuracy = 1)) +  -->
+<!--   coord_cartesian(ylim = c(ymin, ymax)) + -->
+<!--   theme_bw() + -->
+<!--   theme( -->
+<!--     axis.text.x = element_text( -->
+<!--       angle = 90, -->
+<!--       hjust = 0, -->
+<!--       vjust = 0.5,  -->
+<!--       size = 7 -->
+<!--     ), -->
+<!--     axis.ticks.x = element_blank(), -->
+<!--     axis.title.x = element_blank(), -->
+<!--     legend.position = "none",  -->
+<!--     panel.grid.major.y = element_line(colour = "grey"),  -->
+<!--     panel.grid.minor.y = element_line(colour = "grey"),  -->
+<!--     panel.grid.major.x = element_blank(),  -->
+<!--     panel.grid.minor.x = element_blank(),  -->
+<!--     axis.title.y = element_blank() -->
+<!--   ) + -->
+<!--   labs(title = "SSP2") + -->
+<!--   facet_wrap( ~ year) -->
+
+<!-- p4c <- ggplot( -->
+<!--   diet_diffs %>% -->
+<!--     dplyr::filter(year %in% c(2025, 2050, 2075) & -->
+<!--                     SCENARIO == "SSP3_v9_130115"), -->
+<!--   aes(x = diet_plan_f, -->
+<!--       y = pc_diff) -->
+<!-- ) + -->
+<!--   geom_hline(yintercept = 0, alpha = 0.8) + -->
+<!--   geom_col(aes(fill = crop_class), alpha = 0.8, position = "dodge") +  -->
+<!--   scale_fill_manual(labels = c("feed for animals", "food for humans"), values = c(muted("magenta"), muted("green"))) +  -->
+<!--   scale_x_discrete(labels = diets) +  -->
+<!--   # scale_fill_manual( -->
+<!--   #   values = cols, -->
+<!--   #   labels = labz -->
+<!--   # ) +  -->
+<!--   scale_y_continuous(labels = scales::label_percent(accuracy = 1)) +  -->
+<!--   coord_cartesian(ylim = c(ymin, ymax)) + -->
+<!--   theme_bw() + -->
+<!--   theme( -->
+<!--     axis.text.x = element_text( -->
+<!--       angle = 90, -->
+<!--       hjust = 0, -->
+<!--       vjust = 0.5,  -->
+<!--       size = 7 -->
+<!--     ), -->
+<!--     axis.ticks.x = element_blank(), -->
+<!--     axis.title.x = element_blank(), -->
+<!--     legend.position = "none",  -->
+<!--     panel.grid.major.y = element_line(colour = "grey"),  -->
+<!--     panel.grid.minor.y = element_line(colour = "grey"),  -->
+<!--     panel.grid.major.x = element_blank(),  -->
+<!--     panel.grid.minor.x = element_blank(),  -->
+<!--     axis.title.y = element_blank() -->
+<!--   ) + -->
+<!--   labs(title = "SSP3") + -->
+<!--   facet_wrap( ~ year) -->
+
+<!-- p4d <- ggplot( -->
+<!--   diet_diffs %>% -->
+<!--     dplyr::filter(year %in% c(2025, 2050, 2075) & -->
+<!--                     SCENARIO == "SSP4d_v9_130115"), -->
+<!--   aes(x = diet_plan_f, -->
+<!--       y = pc_diff) -->
+<!-- ) + -->
+<!--   geom_hline(yintercept = 0, alpha = 0.8) + -->
+<!--   geom_col(aes(fill = crop_class), alpha = 0.8, position = "dodge") +  -->
+<!--   scale_fill_manual(labels = c("feed for animals", "food for humans"), values = c(muted("magenta"), muted("green"))) +  -->
+<!--   scale_x_discrete(labels = diets) +  -->
+<!--   # scale_fill_manual( -->
+<!--   #   values = cols, -->
+<!--   #   labels = labz -->
+<!--   # ) +  -->
+<!--   scale_y_continuous(labels = scales::label_percent(accuracy = 1)) +  -->
+<!--   coord_cartesian(ylim = c(ymin, ymax)) + -->
+<!--   theme_bw() + -->
+<!--   theme( -->
+<!--     axis.text.x = element_text( -->
+<!--       angle = 90, -->
+<!--       hjust = 0, -->
+<!--       vjust = 0.5,  -->
+<!--       size = 7 -->
+<!--     ), -->
+<!--     axis.ticks.x = element_blank(), -->
+<!--     axis.title.x = element_blank(), -->
+<!--     legend.position = "none",  -->
+<!--     panel.grid.major.y = element_line(colour = "grey"),  -->
+<!--     panel.grid.minor.y = element_line(colour = "grey"),  -->
+<!--     panel.grid.major.x = element_blank(),  -->
+<!--     panel.grid.minor.x = element_blank(),  -->
+<!--     axis.title.y = element_blank() -->
+<!--   ) + -->
+<!--   labs(title = "SSP4") + -->
+<!--   facet_wrap( ~ year) -->
+
+<!-- p4e <- ggplot( -->
+<!--   diet_diffs %>% -->
+<!--     dplyr::filter(year %in% c(2025, 2050, 2075) & -->
+<!--                     SCENARIO == "SSP5_v9_130115"), -->
+<!--   aes(x = diet_plan_f, -->
+<!--       y = pc_diff) -->
+<!-- ) + -->
+<!--   geom_hline(yintercept = 0, alpha = 0.8) + -->
+<!--   geom_col(aes(fill = crop_class), alpha = 0.8, position = "dodge") +  -->
+<!--   scale_fill_manual(labels = c("feed for animals", "food for humans"), values = c(muted("magenta"), muted("green"))) +  -->
+<!--   scale_x_discrete(labels = diets) +  -->
+<!--   # scale_fill_manual( -->
+<!--   #   values = cols, -->
+<!--   #   labels = labz -->
+<!--   # ) +  -->
+<!--   scale_y_continuous(labels = scales::label_percent(accuracy = 1)) +  -->
+<!--   coord_cartesian(ylim = c(ymin, ymax)) + -->
+<!--   theme_bw() +  -->
+<!--   theme( -->
+<!--     axis.text.x = element_text( -->
+<!--       angle = 90, -->
+<!--       hjust = 0, -->
+<!--       vjust = 0.5,  -->
+<!--       size = 7 -->
+<!--     ), -->
+<!--     axis.ticks.x = element_blank(), -->
+<!--     axis.title.x = element_blank(), -->
+<!--     legend.position = "none",  -->
+<!--     panel.grid.major.y = element_line(colour = "grey"),  -->
+<!--     panel.grid.minor.y = element_line(colour = "grey"),  -->
+<!--     panel.grid.major.x = element_blank(),  -->
+<!--     panel.grid.minor.x = element_blank(),  -->
+<!--     axis.title.y = element_text(size = 7) -->
+<!--   ) + -->
+<!--   labs(title = "SSP5", y = "Change over 2018 supply") + -->
+<!--   facet_wrap( ~ year) -->
+
+<!-- ``` -->
+
+<!-- ```{r} -->
+
+<!-- pa <- plot_grid(p4e, p4a, ncol = 1) -->
+<!-- pb <- plot_grid(p4_legend_only, p4b, NA, ncol = 1, rel_heights = c(0.5, 1, 0.5)) -->
+<!-- pc <- plot_grid(p4c, p4d, ncol = 1) -->
+
+<!-- p3 <- cowplot::plot_grid(pa, pb, pc, ncol = 3) -->
+<!-- cowplot::plot_grid(mitigate_arrow, p3, NA, adapt_arrow, ncol = 2, rel_widths = c(0.1, 0.9), rel_heights = c(0.9, 0.1)) -->
+
+<!-- grDevices::jpeg(filename = "Plots/figure_S4b.jpg",  -->
+<!--                width = 750,  -->
+<!--                height = 500,  -->
+<!--                units = "px",  -->
+<!--                quality = 1) -->
+<!-- cowplot::plot_grid(mitigate_arrow, p3, NA, adapt_arrow, ncol = 2, rel_widths = c(0.1, 0.9), rel_heights = c(0.9, 0.1)) -->
+<!-- dev.off() -->
+
+<!-- # p3 <- cowplot::plot_grid(p3a, p3b, p3c, p3d, p3e, p3_legend_only) -->
+<!-- # p3 -->
+<!-- ``` -->
 
 
 
@@ -3542,12 +3642,14 @@ Recode country names and merge with regions.
 Food_countries <- food_countries %>% 
   dplyr::rename(fao_countrycode = area_code) %>% 
   dplyr::select(-area) %>% 
-  dplyr::left_join(loc_map_reduced, by = "fao_countrycode")
+  dplyr::left_join(loc_map_reduced, by = "fao_countrycode") %>% 
+  dplyr::filter(iso_alpha3 %in% iso_list_harmonized) # also include only those countries represented across data sets
 
 Feed_countries <- feed_countries %>% 
   dplyr::rename(fao_countrycode = area_code) %>% 
   dplyr::select(-area) %>% 
-  dplyr::left_join(loc_map_reduced, by = "fao_countrycode")
+  dplyr::left_join(loc_map_reduced, by = "fao_countrycode") %>% 
+  dplyr::filter(iso_alpha3 %in% iso_list_harmonized)
 ```
 
 Do some cleanup first because some ISOa3 codes are not included.
@@ -3579,7 +3681,7 @@ food_2019_2022_lm <- food_2014_2018_data %>%
   dplyr::ungroup() %>%
   tidyr::unnest(cols = c(lm_pred)) %>%
   dplyr::select(iso_alpha3, model_group, lm_pred) %>%
-  dplyr::mutate(year = rep(seq(2019, 2022, by = 1), 2288)) %>%
+  dplyr::mutate(year = rep(seq(2019, 2022, by = 1), 2223)) %>%
   dplyr::rename(tonnes_yr = lm_pred) %>%
   dplyr::mutate(tonnes_yr = ifelse(tonnes_yr < 0, 0, tonnes_yr))
  
@@ -3598,7 +3700,7 @@ feed_2019_2022_lm <- feed_2014_2018_data %>%
   dplyr::ungroup() %>%
   tidyr::unnest(cols = c(lm_pred)) %>%
   dplyr::select(iso_alpha3, model_group, lm_pred) %>%
-  dplyr::mutate(year = rep(seq(2019, 2022, by = 1), 1306)) %>%
+  dplyr::mutate(year = rep(seq(2019, 2022, by = 1), 1273)) %>%
   dplyr::rename(tonnes_yr = lm_pred)
 
 ```
@@ -3699,7 +3801,7 @@ netzero_target_year <- 2050
 
 Confirm continuity between ISO codes so countries represented in 2022 are there in 2023, etc. Fill dummy values in for scenario and diet_plan for the FAO data. These are required for continuity in the spline fitter.
 
-### For food pathways
+### Food pathways
 
 ```{r}
 years_tmp <- food_2014_2022_est %>% distinct(year) %>% pull(year)
@@ -3760,7 +3862,7 @@ names(targets_tmp) <- c("year", "iso_alpha3", "model_group", "diet_plan", "scena
 
 ```{r}
 
-food_targets <- food_proj %>%
+food_targets <- food_proj_2020_2100 %>%
   dplyr::filter(year >= netzero_target_year, year <= 2080) %>%
   dplyr::full_join(
     targets_tmp,
@@ -3865,10 +3967,28 @@ food_pathways_clean <- food_pathways %>%
 ```
 
 ```{r}
-ggplot(food_pathways %>% dplyr::filter(scenario == "SSP2", diet_plan == "ELA-PHD", model_group == "beef_lamb_pork"), aes(x = year, y = tonnes_yr)) + geom_point()
+ggplot(
+  food_pathways %>% dplyr::filter(
+    scenario == "SSP2",
+    diet_plan == "ELA-PHD",
+    model_group == "beef_lamb_pork"
+  ),
+  aes(x = year, y = tonnes_yr * 1e-9)
+) + 
+  geom_line(aes(colour = iso_alpha3)) + 
+  theme_bw() + 
+  theme(
+    legend.position = "none"
+  ) + 
+  labs(
+    title = "Country level least-cost pathways to future demand target, by year 2050",
+    subtitle = "For: SSP2, ELA diet, beef-lamb-pork products only", 
+    x = "year", 
+    y = "Gt/yr"
+  )
 ```
 
-### For feed
+### Feed pathways
 
 ```{r}
 years_tmp <- feed_2014_2022_est %>% distinct(year) %>% pull(year)
@@ -3944,7 +4064,7 @@ names(targets_tmp) <-
 ```
 
 ```{r}
-feed_targets <- feed_proj %>% 
+feed_targets <- feed_proj_2020_2100 %>% 
   dplyr::filter(year >= netzero_target_year, year <= 2080) %>% 
   dplyr::full_join(targets_tmp) %>% 
     dplyr::filter(!is.na(subregionname)) %>% 
@@ -4039,33 +4159,46 @@ feed_pathways_clean <- feed_pathways %>%
 
 Let's take a quick look at what cereals for food and feed will look like for all countries under SSP2.
 ```{r}
-ggplot(food_pathways_clean %>% 
+p1 <- ggplot(food_pathways_clean %>% 
          dplyr::filter(scenario == "SSP2", model_group == "cereals"), 
        aes(x = year, 
-           y = 1e-6*tonnes_yr)) + 
+           y = 1e-9*tonnes_yr)) + 
   geom_area(aes(fill = iso_alpha3)) + 
+  geom_vline(xintercept = 2050, alpha = 0.8, linetype = 2) + 
   theme_minimal() + 
   theme(
     legend.position = "none"
   ) + 
   labs(
-    y = "Mt/yr"
+    title = "Food pathways, target year 2050", 
+    subtitle = "For: SSP2, cereals only",
+    x = "year", 
+    y = "Gt/yr"
   ) + 
   facet_wrap(~diet_plan) 
 
-ggplot(feed_pathways_clean %>% 
+p2 <- ggplot(feed_pathways_clean %>% 
          dplyr::filter(scenario == "SSP2", model_group == "cereals"), 
        aes(x = year, 
-           y = 1e-6*tonnes_yr)) + 
+           y = 1e-9*tonnes_yr)) + 
   geom_area(aes(fill = iso_alpha3)) + 
+  geom_vline(xintercept = 2050, alpha = 0.8, linetype = 2) + 
   theme_minimal() + 
   theme(
     legend.position = "none"
   ) + 
   labs(
-    y = "Mt/yr"
+    title = "Feed pathways, target year 2050", 
+    subtitle = "For: SSP2, cereals only",
+    x = "year", 
+    y = "Gt/yr"
   ) + 
   facet_wrap(~diet_plan) 
+```
+
+
+```{r}
+cowplot::plot_grid(p1, p2, nrow = 2)
 ```
 
 This looks reasonable.
@@ -4310,7 +4443,7 @@ p3 <- cowplot::plot_grid(pa, pb, pc, ncol = 3)
 
 cowplot::plot_grid(mitigate_arrow, p3, NA, adapt_arrow, ncol = 2, rel_widths = c(0.1, 0.9), rel_heights = c(0.9, 0.1))
 
-grDevices::jpeg(filename = "Plots/figure_5.jpg", 
+grDevices::jpeg(filename = "Plots/figure_S3.jpg", 
                width = 750, 
                height = 500, 
                units = "px", 
@@ -4320,25 +4453,11 @@ dev.off()
 
 ```
 
-# For different target years
+## Food and Feed for several target years
 
-Set a target year
+Loop over target years 2045, 2050, 2055, 2060, 2065.
 
-```{r}
-
-# Food_feed_pathways <-
-#   data.frame(
-#     year = NA,
-#     food_group = NA, 
-#     iso_alpha3 = NA,
-#     diet_plan = NA,
-#     scenario = NA,
-#     kt_yr = NA, 
-#     kt_yr_fit = NA, 
-#     kt_yr_se = NA, 
-#     target_year = NA
-#   )
-
+```{r, echo=FALSE}
 for (year in seq(2045, 2065, by = 5)) {
 
   netzero_target_year <- year
@@ -4433,8 +4552,8 @@ for (year in seq(2045, 2065, by = 5)) {
     rm(years_tmp, countries_tmp, model_groups_tmp, diet_plans_tmp, scenarios_tmp, tonnes_yr_tmp)
   
   #food and feed projections to establish targets
-  food_feed_proj <- food_proj %>% 
-    dplyr::bind_rows(feed_proj) %>% 
+  food_feed_proj <- food_proj_2020_2100 %>% 
+    dplyr::bind_rows(feed_proj_2020_2100) %>% 
     dplyr::group_by(iso_alpha3, subregionname, diet_plan, year, model_group, scenario) %>% 
     dplyr::summarise(tonnes_yr = sum(tonnes_yr, na.rm = TRUE), 
                      .groups = "drop")
@@ -4553,7 +4672,9 @@ ggplot(
   geom_line(aes(y = kt_yr_fit), colour = "blue") 
 ```
 
-# Pathway Rates of Change
+Looks good.
+
+### Pathway Rates of Change
 
 Now take first and second differences from pathways.
 ```{r}
@@ -4579,7 +4700,40 @@ The `Food_feed_pathways_curves` df contains pathway ROCs, diff1, and dROCs, diff
 # Food_feed_pathways_curves %>% filter(!year %in% c(2023, 2024))
 ```
 
-# Historical food balances
+### Historical food balances
+
+Back to historical balances.
+
+```{r}
+food_hist_summary <- food_countries %>% 
+  dplyr::rename(fao_countrycode = area_code) %>% 
+  dplyr::full_join(loc_map_reduced) %>% 
+  dplyr::filter(iso_alpha3 %in% iso_list_harmonized) %>% 
+  dplyr::mutate(source_group = ifelse(model_group %in% c("beef_lamb_pork", "meat_poultry", "chicken_poultry", "dairy", "eggs"), 
+                                "animal_products", 
+                                ifelse(model_group == "fish_seafood", 
+                                   "fish_seafood", 
+                                "plant_products"))) %>% 
+  dplyr::group_by(year, source_group) %>% 
+  dplyr::summarise(t_yr = sum(tonnes_yr, na.rm = TRUE), 
+                   .groups = "drop") %>% 
+  dplyr::filter(year <= 2018)
+
+feed_hist_summary <- feed_countries %>% 
+  dplyr::rename(fao_countrycode = area_code) %>% 
+  dplyr::full_join(loc_map_reduced) %>% 
+  dplyr::filter(iso_alpha3 %in% iso_list_harmonized) %>% 
+  dplyr::mutate(source_group = ifelse(model_group %in% c("beef_lamb_pork", "meat_poultry", "chicken_poultry", "dairy", "eggs"), 
+                                "animal_products", 
+                                ifelse(model_group == "fish_seafood", 
+                                   "fish_seafood", 
+                                "plant_products"))) %>% 
+  dplyr::group_by(year, source_group) %>% 
+  dplyr::summarise(t_yr = sum(tonnes_yr, na.rm = TRUE), 
+                   .groups = "drop") %>% 
+  dplyr::filter(year <= 2018)
+```
+
 
 From FAO Food Balance data sheets.
 ```{r}
@@ -4666,6 +4820,7 @@ food_feed_hist_countries <- food_hist_countries %>%
 ```
 
 Take first and second differences of the (smoothed) historical data. (I am smoothing the data by taking 3 year rolling means.)
+
 ```{r}
 
 food_feed_curv <- food_feed_hist_countries %>%
@@ -4679,36 +4834,46 @@ food_feed_curv <- food_feed_hist_countries %>%
 
 ```
 
-Map these to geographic subregions (groupings of countries that follow FAO pattern, sometimes continental-scale, sometimes sub-continental, sometimes super-continental).
+Map these to geographic subregions (groupings of countries that follow FAO pattern, sometimes continental-scale, sometimes sub-continental, sometimes super-continental). And filter for only those countries shared by future pathways.
+
 ```{r}
 
 food_feed_curv_regions <- food_feed_curv %>% 
   dplyr::rename(fao_countrycode = area_code) %>% 
   dplyr::select(-area) %>% 
   dplyr::left_join(loc_map_reduced) %>% 
-  tidyr::drop_na()
+  tidyr::drop_na() %>% 
+  dplyr::filter(iso_alpha3 %in% iso_list_harmonized)
 
 ```
 
+The rate at which production rate changes in time is the curvature. Show the absolute curvatures for all regions below, in time series.
+
 ```{r}
-p1 <- ggplot(food_feed_curv_regions,
+p1 <- ggplot(food_feed_curv_regions %>% 
+               dplyr::filter(abs(diff2) >= 1),
              aes(x = year,
                  y = abs(diff2))) +
   geom_hline(yintercept = 0, alpha = 0.8) +
-  geom_point(aes(colour = subregionname), alpha = 0.5) +
-  theme_minimal() +
-  theme(legend.position = "bottom",
-        legend.title = element_blank()) +
+  geom_point(aes(colour = subregionname), alpha = 0.2, alpha = 0.2) + 
+  geom_smooth(se = FALSE, size = 0.7, alpha = 0.9) + 
+  theme_bw() + 
+  theme(legend.position = "none", 
+        legend.title = element_blank(), 
+        axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
   labs(
     title = "Historical crop production absolute acceleration (pathway curvature)",
     subtitle = "Source: FAOSTAT (2022)",
     x = "year",
-    y = "absolute curvature (kt/yr/yr)"
-  )
+    y = "log absolute curvature (kt/yr/yr)"
+  ) + 
+  scale_y_log10() + 
+  facet_wrap(~ subregionname)
 
 p1
 ```
-## Distributions
+
+## Distribution Analysis
 
 Find out how ROC distributions change globally, for all food types, scenarios, target years, and countries, as a function of diet plan.
 
@@ -4744,6 +4909,7 @@ pathway_density_ensemble_means <- pathway_density_averages %>%
 
 ```
 
+## Plot Figure 6
 
 ```{r}
 cols <-
@@ -4786,22 +4952,27 @@ p2_pos <- ggplot(Food_feed_pathways_curves %>%
     values = cols
   ) +
   theme_bw() + 
-  theme(
-    legend.position = "top", 
-    legend.title = element_blank()
-  ) +
+   theme(
+    legend.title = element_blank(), 
+    legend.position = "bottom", 
+    legend.text = element_text(size = 12), 
+    axis.title = element_text(size = 12), 
+    strip.text = element_text(size = 12), 
+    title = element_text(size = 14)
+  ) + 
   scale_x_log10(
     breaks = scales::trans_breaks("log10", function(x)
       10 ^ x),
     labels = scales::trans_format("log10", scales::math_format(10 ^
                                                                  .x))
   ) + 
+  annotation_logticks(sides = "b", size = 0.4) + 
+  coord_cartesian(xlim = c(1e-2, 1e4)) + 
   labs(
     title = "Positive ROC values", 
     x = "ROC (kt/yr)", 
     tag = "A"
-  ) + 
-  coord_cartesian(xlim = c(1e-2, 1e4)) + 
+  ) +  
   facet_wrap(~food_group)
 
 p2_leg <- cowplot::get_legend(p2_pos) 
@@ -4844,7 +5015,11 @@ p2_neg <- ggplot(Food_feed_pathways_curves %>%
   ) +
   theme_bw() + 
   theme(
-    legend.position = "none"
+    legend.position = "none", 
+    legend.text = element_text(size = 12), 
+    axis.title = element_text(size = 12), 
+    strip.text = element_text(size = 12), 
+    title = element_text(size = 14)
   ) + 
   scale_x_log10(
     breaks = scales::trans_breaks("log10", function(x)
@@ -4852,6 +5027,7 @@ p2_neg <- ggplot(Food_feed_pathways_curves %>%
     labels = scales::trans_format("log10", scales::math_format(-10 ^
                                                                  .x))
   ) + 
+  annotation_logticks(sides = "b", size = 0.4) + 
   coord_cartesian(xlim = c(1e-2, 1e4)) + 
   labs(
     title = "Negative ROC values", 
@@ -4859,10 +5035,13 @@ p2_neg <- ggplot(Food_feed_pathways_curves %>%
     tag = "B"
   ) + 
   facet_wrap(~food_group)
+```
 
+
+```{r}
 
 cowplot::plot_grid(p2_pos, p2_neg, p2_leg, ncol = 1, rel_heights = c(0.45, 0.45, 0.1)) 
-grDevices::jpeg(filename = "Plots/figure_S6.jpg", 
+grDevices::jpeg(filename = "Plots/figure_6.jpg", 
                width = 800, 
                height = 500, 
                units = "px", 
@@ -4917,12 +5096,16 @@ p_rate_pos <- ggplot(
              linetype = 2, 
              colour = "firebrick", 
              alpha = 0.5) + 
-  theme_minimal() + 
+  theme_bw() + 
   theme(
-    legend.title = element_blank(), 
     legend.position = "top", 
+    legend.title = element_blank(), 
+    legend.text = element_text(size = 12), 
     axis.text.x = element_text(angle = 90, 
-                               size = 7)
+                               size = 10), 
+    axis.title = element_text(size = 12), 
+    strip.text = element_text(size = 12), 
+    title = element_text(size = 14)
   ) + 
   labs(
     subtitle = paste0(scenar, ", year-to-year positive rate of change"), 
@@ -4965,12 +5148,15 @@ p_rate_neg <- ggplot(
              colour = "firebrick", 
              alpha = 0.5) + 
   scale_x_reverse() + 
-  theme_minimal() + 
+  theme_bw() + 
   theme(
-    legend.position = "none",
+    legend.position = "none", 
     legend.title = element_blank(), 
     axis.text.x = element_text(angle = 90, 
-                               size = 7)
+                               size = 10), 
+    axis.title = element_text(size = 12), 
+    strip.text = element_text(size = 12), 
+    title = element_text(size = 14)
   ) + 
   labs(
     subtitle = paste0(scenar, ", year-to-year negative rate of change"), 
@@ -5026,6 +5212,7 @@ rate_neg_pathways <- p_rate_neg_pathways$data[[1]] %>%
   dplyr::select(type, scenario, diet_plan, target_year, diff1, density)
 
 ```
+
 
 ```{r}
 ggplot(
@@ -5260,6 +5447,7 @@ Path_diff2_norm_df <- Path_diff2_df %>%
   dplyr::ungroup()
 ```
 
+
 ```{r}
 Path_diff1_norm_df <- Path_diff1_norm_df %>% 
   dplyr::mutate(diet_plan_f = ifelse(diet_plan == "ELA-PHD", 
@@ -5314,6 +5502,8 @@ path_diff1_neg <- Path_diff1_norm_df %>%
             .groups = "drop")
 ```
 
+### Plot Figure 7
+
 ```{r}
 
 rate_palette <- brewer.pal(name="Blues", n=9)[5:9]
@@ -5325,18 +5515,20 @@ p_diff1_pos <- ggplot(path_diff1_pos,
             size = 1.2, 
             alpha = 0.7) + 
   geom_hline(yintercept = fao_hist_diff1_pos$test, 
-             colour = "firebrick", 
-             size = 1.1, 
-             alpha = 0.8) + 
+             # colour = "firebrick", 
+             size = 1, 
+             linetype = 2) + 
   theme_minimal() + 
   theme(
     legend.title = element_blank(), 
     legend.position = "top", 
-    axis.text.x = element_text(angle = 0, 
-                               vjust = 0.5), 
+    legend.text = element_text(size = 14), 
+    axis.text.x = element_text(size = 10), 
     axis.title.x = element_blank(), 
-    axis.title.y = element_text(size = 8), 
-    panel.spacing = unit(2, "lines")
+    axis.title.y = element_text(size = 12), 
+    panel.spacing = unit(2, "lines"), 
+    strip.text = element_text(size = 12), 
+    title = element_text(size = 14)
   ) + 
   annotate("text", 
            label = "historical", 
@@ -5346,7 +5538,7 @@ p_diff1_pos <- ggplot(path_diff1_pos,
            colour = "#322F2E") + 
   labs(
     tag = "A", 
-    subtitle = "Positive ROC values", 
+    title = "Positive ROC values", 
     y = "mean ROC (kt/yr)"
   ) + 
   scale_colour_manual(values = rate_palette) + 
@@ -5365,18 +5557,18 @@ p_diff1_neg <- ggplot(path_diff1_neg,
             size = 1.2, 
             alpha = 0.7) + 
   geom_hline(yintercept = fao_hist_diff1_neg$test, 
-             colour = "firebrick", 
-             size = 1.1, 
-             alpha = 0.8) + 
+             # colour = "firebrick", 
+             size = 1, 
+             linetype = 2) + 
   theme_minimal() + 
   theme(
     legend.position = "none", 
-    axis.text.x = element_text(angle = 0, 
-                               vjust = 0.5), 
-    axis.title.x = element_text(margin = margin(t = 10), 
-                                size = 9), 
-    axis.title.y = element_text(size = 8), 
-    panel.spacing = unit(2, "lines")
+    axis.text.x = element_text(size = 10), 
+    axis.title.x = element_blank(), 
+    axis.title.y = element_text(size = 12), 
+    panel.spacing = unit(2, "lines"), 
+    strip.text = element_text(size = 12), 
+    title = element_text(size = 14)
   ) + 
   annotate("text", 
            label = "historical", 
@@ -5386,7 +5578,7 @@ p_diff1_neg <- ggplot(path_diff1_neg,
            colour = "#322F2E") + 
   labs(
     tag = "B", 
-    subtitle = "Negative ROC values", 
+    title = "Negative ROC values", 
     x = "target year to reach the dietary goal", 
     y = "mean ROC (kt/yr)"
   ) + 
@@ -5395,15 +5587,17 @@ p_diff1_neg <- ggplot(path_diff1_neg,
   facet_wrap(~ diet_plan_f)
 ```
 
+Save to disk.
 
 ```{r}
-grDevices::jpeg(filename = "Plots/figure_6.jpg", 
+cowplot::plot_grid(p_legend, p_diff1_pos,p_diff1_neg, ncol = 1, rel_heights = c(0.1, 0.8, 0.85))
+
+grDevices::jpeg(filename = "Plots/figure_7.jpg", 
                width = 500, 
                height = 300, 
                units = "px", 
                quality = 1)
 cowplot::plot_grid(p_legend, p_diff1_pos,p_diff1_neg, ncol = 1, rel_heights = c(0.1, 0.8, 0.85))
-
 dev.off()
 ```
 
