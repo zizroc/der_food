@@ -1,7 +1,7 @@
 national_food_plan,national_food_plan_group,model_group,g_kcal,source
 FDA_SDP,dark-green-veg,vegetables,3.85,https://www.dietaryguidelines.gov/sites/default/files/2021-03/Dietary_Guidelines_for_Americans-2020-2025.pdf
 FDA_SDP,red-and-orange-veg,vegetables,3.85,https://www.dietaryguidelines.gov/sites/default/files/2021-03/Dietary_Guidelines_for_Americans-2020-2025.pdf
-FDA_SDP,beans-peas-lentils,vegetables,3.85,https://www.dietaryguidelines.gov/sites/default/files/2021-03/Dietary_Guidelines_for_Americans-2020-2025.pdf
+FDA_SDP,beans-peas-lentils,legumes,0.264,https://www.dietaryguidelines.gov/sites/default/files/2021-03/Dietary_Guidelines_for_Americans-2020-2025.pdf
 FDA_SDP,starchy-veg,roots_tubers,1.28,https://www.dietaryguidelines.gov/sites/default/files/2021-03/Dietary_Guidelines_for_Americans-2020-2025.pdf
 FDA_SDP,other-veg,vegetables,3.85,https://www.dietaryguidelines.gov/sites/default/files/2021-03/Dietary_Guidelines_for_Americans-2020-2025.pdf
 FDA_SDP,fruits,fruits,1.59,https://www.dietaryguidelines.gov/sites/default/files/2021-03/Dietary_Guidelines_for_Americans-2020-2025.pdf
