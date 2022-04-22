@@ -2420,7 +2420,7 @@ dev.off()
 
 ```{r}
 food_feed_proj_diff %>% 
-  dplyr::filter(year == 2075 & source_group == "fish_seafood" & diet_plan == "ELA" & crop_class == "feed")
+  dplyr::filter(year == 2075 & source_group == "fish_seafood" & diet_plan == "USDA" & crop_class == "food")
 ```
 
 
@@ -3605,7 +3605,7 @@ compare <- global_crop_demand_food_feed %>%
 
 ```
 
-The plotted points appear roughly in line with the healthy "US-style" diet from the FDA.
+
 
 ```{r}
 

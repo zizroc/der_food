@@ -196,6 +196,18 @@ p1 <- ggplot(data = der_harmonized,
   theme_minimal()
 
 p1
+```
+
+Write to disk. 
+
+```{r}
+grDevices::jpeg(filename = "Plots/figure_S1a.jpg",
+               width = 750,
+               height = 500,
+               units = "px",
+               quality = 1)
+p1
+dev.off()
 
 ```
 
@@ -1473,6 +1485,8 @@ national_food_plan_map <-
   )
 ```
 
+
+
 The national diet plans mapped to the standard food group typology follow. The USA-FDA plan advises a range of recommended daily quantities (here converted into kcal) for a range of recommended daily total kcal intakes. To compare the demands of all national plans, I will take the 2400 kcal per day numbers.
 ```{r}
 
@@ -1668,7 +1682,7 @@ kcal_edu_fda <- kcal_edu %>%
                    .groups = "drop") %>% 
   dplyr::ungroup() %>% 
   dplyr::mutate(animal_products = meat_poultry + dairy, 
-                plant_products = cereals + fruits + oils + roots_tubers + sugarcrops + treenuts + vegetables) %>% 
+                plant_products = cereals + fruits + oils + roots_tubers + sugarcrops + treenuts + vegetables + legumes) %>% 
   dplyr::select(SCENARIO, REGION, diet_plan, year, animal_products , fish_seafood, plant_products)
 
 
@@ -1907,17 +1921,17 @@ p3
 
 ```
 
-Now plot in terms of relative change from demand in 2018.
+Now plot in terms of relative change from demand in "2018" (i.e., 2020 in the data).
 
 ```{r}
 totals_2018 <- all_plans_long %>% 
-  dplyr::mutate(M_kcal_day_2018 = ifelse(year == 2018, M_kcal_per_day, NA)) %>% 
+  dplyr::mutate(M_kcal_day_2018 = ifelse(year == 2020, M_kcal_per_day, NA)) %>% 
   dplyr::group_by(SCENARIO, diet_plan) %>% 
-  dplyr::filter(year == 2018) %>% 
+  dplyr::filter(year == 2020) %>% 
   dplyr::summarise(total_kcal_2018 = sum(M_kcal_per_day, na.rm = TRUE), .groups = "drop")
 
 diff_kcal_to_2018 <- all_plans_long %>%
-  dplyr::mutate(M_kcal_day_2018 = ifelse(year == 2018, M_kcal_per_day, NA)) %>%
+  dplyr::mutate(M_kcal_day_2018 = ifelse(year == 2020, M_kcal_per_day, NA)) %>%
   dplyr::group_by(SCENARIO, diet_plan, food_source) %>%
   tidyr::fill(M_kcal_day_2018, .direction = "updown") %>%
   dplyr::ungroup() %>%
@@ -2803,11 +2817,11 @@ test <- feed_ingredient_demand_summary %>%
   dplyr::mutate(tonnes_year = tonnes_day * 365)
 
 test_2018 <- test %>%
-  dplyr::filter(year == 2018) %>%
+  dplyr::filter(year == 2020) %>%
   dplyr::mutate(tonnes_year_2018 = tonnes_year)
 
 test <- test %>%
-  dplyr::filter(year >= 2018) %>%
+  dplyr::filter(year >= 2020) %>%
   dplyr::left_join(test_2018,
                    by = c("SCENARIO", "diet_plan", "year", "tonnes_day", "tonnes_year")) %>%
   dplyr::group_by(SCENARIO, diet_plan) %>%
@@ -2851,7 +2865,7 @@ global_crop_demand_food_feed <- global_crop_demand_for_feed %>%
   dplyr::mutate(tonnes_yr = tonnes_day*365)
 
 diff <- global_crop_demand_food_feed %>% 
-  dplyr::mutate(tonnes_yr_2018 = ifelse(year == 2018, 
+  dplyr::mutate(tonnes_yr_2018 = ifelse(year == 2020, 
                 tonnes_yr, 
                 NA)) %>% 
   dplyr::group_by(SCENARIO, diet_plan, crop_class) %>% 
