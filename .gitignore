@@ -40,3 +40,9 @@ vignettes/*.pdf
 
 # Mac metadata
 .DS_Store
+
+# specific big files
+food_feed_pathways.csv
+SspDb_country_data_2013-06-12.csv
+FoodBalanceSheets_E_All_Data_(Normalized).csv
+FoodBalanceSheetsHistoric_E_All_Data_(Normalized).csv
