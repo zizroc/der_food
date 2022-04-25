@@ -5593,8 +5593,8 @@ Save to disk.
 cowplot::plot_grid(p_legend, p_diff1_pos,p_diff1_neg, ncol = 1, rel_heights = c(0.1, 0.8, 0.85))
 
 grDevices::jpeg(filename = "Plots/figure_7.jpg", 
-               width = 500, 
-               height = 300, 
+               width = 800, 
+               height = 500, 
                units = "px", 
                quality = 1)
 cowplot::plot_grid(p_legend, p_diff1_pos,p_diff1_neg, ncol = 1, rel_heights = c(0.1, 0.8, 0.85))
