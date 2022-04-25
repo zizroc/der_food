@@ -2427,7 +2427,7 @@ food_feed_proj_diff %>%
 
 ```{r}
 food_feed_proj_diff %>% 
-  dplyr::filter(year %in% c(2075)) %>% 
+  dplyr::filter(year %in% c(2050)) %>% 
   dplyr::group_by(year, crop_class, source_group) %>% 
   dplyr::summarise(Gt_diff_max = max(t_yr_diff)*1e-9, 
                    Gt_diff_min = min(t_yr_diff)*1e-9, 
