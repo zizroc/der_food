@@ -5053,6 +5053,8 @@ dev.off()
 
 
 
+
+
 Pathways and FAO historical data.
 
 ```{r}
@@ -5062,6 +5064,12 @@ Food_feed_pathways_curves_regions <- Food_feed_pathways_curves %>%
 Food_feed_curv_regions <- food_feed_curv_regions %>% 
   dplyr::mutate(diet_plan = "FAO data", 
                 scenario = "FAO data")
+```
+
+
+```{r}
+readr::write_csv(Food_feed_curv_regions, 
+                 file = paste0(data_path, "/pathways_roc.csv"))
 ```
 
 
