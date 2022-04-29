@@ -219,6 +219,14 @@ p1
 <!--   dplyr::select(-year) -->
 <!-- ``` -->
 
+Load healthy food demand data.
+
+```{r}
+# readr::write_csv(ssp2_kcal_edu, file = paste0(data_path, "/ssp2_kcal_edu.csv"))
+ssp2_kcal_edu <- readr::read_csv(file = paste0(data_path, "/ssp2_kcal_edu.csv"))
+```
+
+
 
 Based on population and MDER demands by education/activity-level, calculate the total daily caloric demand for (healthy) humans.
 
@@ -596,6 +604,17 @@ fao_kcal_df <- population %>%
          SCENARIO = "FAO") %>% 
   dplyr::select(SCENARIO, diet_plan, year, food_source, M_kcal_per_day)
 
+```
+
+Load future pathway kcal data, including diet plans calculated in `iep_healthy_food.Rmd`.
+
+```{r}
+# readr::write_csv(all_plans_long, file = paste0(data_path, "/diet_plans_long.csv"))
+all_plans_long <- readr::read_csv(file = paste0(data_path, "/diet_plans_long.csv"))
+```
+
+
+```{r}
 fao_kcal_diff <- fao_kcal_df %>% 
   dplyr::full_join(all_plans_long %>% 
   dplyr::filter(year >= 2020)) %>% 
@@ -1816,72 +1835,108 @@ We next back-out production values (tonnes/year) for plant, animal and fish/mari
 
 To determine total food and feed consumption, bind projected food crop (`food_weight`), projected livestock & fish for food (`live_food_weight`), and total projected feed (from animal, fish, and plant products, `feed_ingredient_demand_summary`).
 
+Read in data.
+
 ```{r}
-food_proj <- food_weight %>% 
+food_crop_proj <- readr::read_csv(file = paste0(data_path, "/food_crop_proj.csv"))
+food_animal_proj <- readr::read_csv(file = paste0(data_path, "/food_animal_proj.csv"))
+feed_total_proj <- readr::read_csv(file = paste0(data_path, "/feed_crop_animal_proj.csv"))
+```
+
+```{r}
+scenarios_df <- data.frame(
+   SCENARIO = c("SSP1_v9_130115", "SSP2_v9_130115", "SSP3_v9_130115", "SSP4d_v9_130115", "SSP5_v9_130115"), 
+   scenario = c("SSP1", "SSP2", "SSP3", "SSP4", "SSP5")
+)
+```
+
+
+```{r}
+food_proj_tmp1 <- food_crop_proj %>% 
   dplyr::filter(iso_alpha3 %in% iso_list_harmonized) %>% 
-  dplyr::mutate(tonnes_yr = tonnes_day_food * 365) %>%
-  dplyr::select(SCENARIO,
+  dplyr::mutate(tonnes_yr = tonnes_day_food * 365) %>% 
+  dplyr::full_join(
+    scenarios_df
+  ) %>%
+  dplyr::select(scenario,
                 iso_alpha3,
                 subregionname,
                 diet_plan,
                 year,
                 model_group,
-                tonnes_yr) %>%
-  dplyr::bind_rows(
-    live_food_weight %>% 
-  dplyr::filter(iso_alpha3 %in% iso_list_harmonized) %>%
-      dplyr::mutate(tonnes_yr = tonnes_day_food * 365) %>%
-      dplyr::select(
-        SCENARIO,
+                tonnes_yr)
+
+food_proj_tmp2 <- food_animal_proj %>%
+    dplyr::filter(iso_alpha3 %in% iso_list_harmonized) %>%
+    dplyr::mutate(tonnes_yr = tonnes_day_food * 365) %>% 
+  dplyr::full_join(
+    scenarios_df
+  ) %>%
+  dplyr::select(
+    scenario,
         iso_alpha3,
         subregionname,
         diet_plan,
         year,
         model_group,
         tonnes_yr
-      )
-  ) %>%
-  dplyr::mutate(scenario = ifelse(
-    SCENARIO == "SSP1_v9_130115",
-    "SSP1",
-    ifelse(
-      SCENARIO == "SSP2_v9_130115",
-      "SSP2",
-      ifelse(
-        SCENARIO == "SSP3_v9_130115",
-        "SSP3",
-        ifelse(SCENARIO == "SSP4d_v9_130115",
-               "SSP4",
-               "SSP5")
-      )
-    )
-  )) %>% 
-  dplyr::select(-SCENARIO) %>% 
-  dplyr::filter(year >= 2025)
+      ) 
 
+food_proj <- food_proj_tmp1 %>% 
+  dplyr::full_join(food_proj_tmp2)
+```
+
+Do the same for feed.
+
+```{r}
 feed_proj <- feed_ingredient_demand_summary %>% 
   dplyr::filter(iso_alpha3 %in% iso_list_harmonized) %>% 
   dplyr::mutate(tonnes_yr = tonnes_day*365) %>% 
   dplyr::select(-tonnes_day) %>%
-  dplyr::mutate(scenario = ifelse(
-    SCENARIO == "SSP1_v9_130115",
-    "SSP1",
-    ifelse(
-      SCENARIO == "SSP2_v9_130115",
-      "SSP2",
-      ifelse(
-        SCENARIO == "SSP3_v9_130115",
-        "SSP3",
-        ifelse(SCENARIO == "SSP4d_v9_130115",
-               "SSP4",
-               "SSP5")
-      )
-    )
-  )) %>% 
-  dplyr::select(-SCENARIO) %>% 
-  dplyr::filter(year >= 2025)
+  dplyr::full_join(
+    scenarios_df
+  ) %>% 
+  dplyr::select(-SCENARIO)
 
 ```
+
+```{r}
+food_group_df <- data.frame(
+  model_group = c(
+    "cereals",
+    "legumes",
+    "oils",
+    "roots_tubers",
+    "sugarcrops",
+    "treenuts",
+    "vegetables",
+    "fruits",
+    "meat_poultry",
+    "beef_lamb_pork",
+    "chicken_poultry",
+    "dairy",
+    "eggs",
+    "fish_seafood"
+  ),
+  source_group = c(
+    "plant_products",
+    "plant_products",
+    "plant_products",
+    "plant_products",
+    "plant_products",
+    "plant_products",
+    "plant_products",
+    "plant_products",
+    "animal_products",
+    "animal_products",
+    "animal_products",
+    "animal_products",
+    "animal_products",
+    "fish_seafood"
+  )
+)
+```
+
 
 Summarise these after classifying as animal, plant and fish/seafood products.
 
@@ -1891,13 +1946,7 @@ food_proj_summary_all_years <- food_proj %>%
   dplyr::summarise(tonnes_yr = sum(tonnes_yr, na.rm = TRUE), 
                    .groups = "drop") %>% 
   dplyr::mutate(diet_plan = ifelse(diet_plan == "CNS-CFP", "CNS", ifelse(diet_plan == "ELA-PHD", "ELA", "USDA"))) %>% 
-  dplyr::mutate(source_group = ifelse(model_group %in% c("cereals", "legumes", "oils", "roots_tubers", "sugarcrops", "treenuts", "vegetables", "fruits"), 
-                                    "plant_products", 
-                                    ifelse(model_group %in% c("meat_poultry", "beef_lamb_pork", "chicken_poultry", "dairy", "eggs"), 
-                                           "animal_products", 
-                                           ifelse(model_group %in% c("fish_seafood"), 
-                                                  "fish_seafood", 
-                                                  NA)))) %>% 
+  dplyr::full_join(food_group_df) %>% 
   dplyr::group_by(year, scenario, diet_plan, source_group) %>% 
   dplyr::summarise(t_yr = sum(tonnes_yr, na.rm = TRUE), 
                    .groups = "drop") 
@@ -5068,8 +5117,10 @@ Food_feed_curv_regions <- food_feed_curv_regions %>%
 
 
 ```{r}
-readr::write_csv(Food_feed_curv_regions, 
+readr::write_csv(Food_feed_pathways_curves, 
                  file = paste0(data_path, "/pathways_roc.csv"))
+readr::write_csv(Food_feed_curv_regions, 
+                 file = paste0(data_path, "/pathways_roc_regions.csv"))
 ```
 
 

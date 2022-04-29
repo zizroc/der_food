@@ -12,6 +12,7 @@ library(ggplot2)
 library(cowplot)
 library(scales)
 library(readr)
+library(RColorBrewer)
 ```
 
 ## Introduction
@@ -1068,25 +1069,58 @@ der_def$region_f <- factor(der_def$region_f, levels = c("South Asia", "Africa", 
 
 ```
 
+```{r}
+region_labs <- data.frame(
+  region_f = c("South Asia", "Africa", "Oceania", "Southeast Asia", "South America", "Central Asia and Russia", "Latin America and Caribbean", "MENA", "East Asia", "Europe", "Australia and New Zealand", "North America"), 
+  region_labs = c("South Asia", "Sub-Sahran Africa", "Oceania", "Southeast Asia", "South America", "Central Asia and\nRussia", "Latin America and\nthe Caribbean", "Middle East and\nNorth Africa", "East Asia", "Europe", "Australia and\nNew Zealand", "North America")
+)
+
+der_def <- der_def %>% 
+  full_join(region_labs)
+
+der_def$region_labs <- factor(der_def$region_labs, levels = c("South Asia", "Sub-Sahran Africa", "Oceania", "Southeast Asia", "South America", "Central Asia and\nRussia", "Latin America and\nthe Caribbean", "Middle East and\nNorth Africa", "East Asia", "Europe", "Australia and\nNew Zealand", "North America"))
+  
+```
+
+## Plot Figure 1
 
 ```{r}
-ggplot(data = der_def,
-       mapping = aes(x = region_f,
-                     y = der_deficit)) + 
-  geom_hline(yintercept = 0, alpha = 0.9) + 
-  geom_boxplot(mapping = aes(fill = as.factor(year)), 
-               position = "dodge") + 
-  theme_minimal() + 
+p_fig1 <- ggplot(data = der_def,
+                 mapping = aes(x = region_labs,
+                               y = der_deficit)) +
+  geom_hline(yintercept = 0, alpha = 0.9) +
+  geom_boxplot(mapping = aes(fill = as.factor(year)),
+               position = "dodge") +
+  scale_fill_brewer(labels = region_labs, palette = 1) +
+  theme_minimal() +
   theme(
-    legend.position = "top", 
-    legend.title = element_blank(), 
-    panel.grid.major.x = element_blank(), 
-    panel.grid.minor.x = element_blank(), 
-    axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.9)
-  ) + 
-  labs(
-    y = "kcal/cap/day"
-  )
+    legend.position = "top",
+    legend.text = element_text(size = 12),
+    legend.title = element_blank(),
+    panel.grid.major.x = element_blank(),
+    panel.grid.minor.x = element_blank(),
+    axis.text.x = element_text(
+      angle = 90,
+      hjust = 1,
+      vjust = 0.9,
+      size = 10
+    ),
+    axis.text.y = element_text(size = 10),
+    axis.title.x = element_blank()
+  ) +
+  labs(y = "kcal/cap/day")
+```
+
+
+```{r}
+p_fig1
+grDevices::jpeg(filename = "Plots/figure_1.jpg", 
+               width = 750, 
+               height = 500, 
+               units = "px", 
+               quality = 1)
+p_fig1
+dev.off()
 ```
 
 
@@ -1630,6 +1664,59 @@ The diet plans are summarised in the table.
 # knitr::kable(all_plans_mapped[,1:4], caption = "All diet plans")
 all_plans_mapped
 ```
+
+## Plot Figure 2
+
+```{r}
+diet_plan_labels <- data.frame(
+  diet_plan = c("ELA-PHD", "CNS-CFP", "FDA-SDP"), 
+  diet_plan_lab = c("ELA", "CNS", "USDA")
+)
+
+model_group_labels <- data.frame(
+  model_group = c("beef_lamb_pork", "cereals", "chicken_poultry", "dairy", "eggs", "fish_seafood", "fruits", "legumes", "oils", "roots_tubers", "sugarcrops", "treenuts", "vegetables", "meat_poultry"), 
+  model_group_lab = c("meat & poultry", "cereals", "meat & poultry", "dairy", "eggs", "fish & seafood", "fruits", "legumes", "vegetable oils", "roots & tubers", "sugarcrops", "treenuts", "vegetables", "meat & poultry")
+)
+
+model_group_label_colours <- data.frame(
+  model_group_lab = c("meat & poultry", "cereals", "dairy", "eggs", "fish & seafood", "fruits", "legumes", "vegetable oils", "roots & tubers", "sugarcrops", "treenuts", "vegetables"), 
+    model_group_lab_col = c("lightcoral", "lightgoldenrod", "lightblue", "cornsilk2", "deepskyblue4", "mediumseagreen", "khaki3", "darkolivegreen4", "lightgoldenrod4", "lightgreen", "darkorange4", "darkgreen")
+)
+
+all_plans_for_plot <- all_plans_mapped %>% 
+  dplyr::full_join(diet_plan_labels) %>% 
+  dplyr::full_join(model_group_labels) %>% 
+  tidyr::drop_na() %>% 
+  dplyr::group_by(diet_plan_lab, model_group_lab) %>% 
+  dplyr::summarise(slice = sum(kcal_ratio, na.rm = TRUE), 
+                   .groups = "drop")
+  
+```
+
+```{r}
+all_plans_for_plot$diet_plan_lab_f <- all_plans_for_plot$diet_plan_lab
+all_plans_for_plot$diet_plan_lab_f <- factor(all_plans_for_plot$diet_plan_lab, levels = c("ELA", "CNS", "USDA"))
+```
+
+
+```{r}
+ggplot(all_plans_for_plot, 
+       aes(x = "", y = slice, fill = model_group_lab)) + 
+  geom_bar(stat = "identity", width = 1, size = 0.2, colour = "white") + 
+  coord_polar("y", start = 0) + 
+  scale_fill_manual(values = model_group_label_colours$model_group_lab_col, labels = model_group_label_colours$model_group_lab) + 
+  # scale_fill_brewer(palette = "Paired") + 
+  theme_void() + 
+  theme(
+    legend.position = "bottom", 
+    legend.title = element_blank(), 
+    legend.text = element_text(size = 11), 
+    axis.title = element_blank(), 
+    strip.text = element_text(size = 12)
+  ) + 
+  facet_wrap(~ diet_plan_lab_f)
+```
+
 
 Wrangle to widen data frames for each diet plan.
 ```{r}
@@ -3091,6 +3178,13 @@ p5 <- cowplot::plot_grid(p5a, p5b, p5c, p5d, p5e, p5_legend_only)
 p5
 ```
 
+Write data to disk.
+
+```{r}
+readr::write_csv(food_weight, file = paste0(data_path, "/food_crop_proj.csv"))
+readr::write_csv(live_food_weight, file = paste0(data_path, "/food_animal_proj.csv"))
+readr::write_csv(feed_ingredient_demand_summary, file = paste0(data_path, "/feed_crop_animal_proj.csv"))
+```
 
 
 
@@ -3337,7 +3431,6 @@ ggplot(annual_live_fish_catch,
   facet_wrap(~SCENARIO, labeller = labeller(SSP1_v9_130115 = "SSP1", "SSP2" = "SSP2_v9_130115", "SSP3" = "SSP3_v9_130115", "SSP4" = "SSP4d_v9_130115", "SSP5" = "SSP5_v9_130115"))
 
 ```
-
 
 The daily demand for human consumption of livestock and livestock products on a per country basis is given below.
 ```{r}
