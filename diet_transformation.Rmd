@@ -1407,6 +1407,20 @@ fao_kcal_diff_ranges %>%
                    .groups = "drop")
 ```
 
+```{r}
+fao_kcal_diff_ranges %>% 
+  dplyr::filter(year %in% c(2050, 2075)) %>% 
+  dplyr::group_by(year, food_source, diet_plan_f) %>% 
+  dplyr::summarise(diff_max = max(diff_max) * 1e-6, 
+                   diff_min = min(diff_min) * 1e-6, 
+                   pc_diff_max = max(pc_diff_max), 
+                   pc_diff_min = min(pc_diff_min), 
+                   .groups = "drop") %>% 
+  dplyr::filter(diet_plan_f == "USDA" & food_source == "animal_products")
+  
+```
+
+
 
 ```{r}
 out_fig3 <- fao_kcal_diff %>% 
@@ -2469,7 +2483,7 @@ dev.off()
 
 ```{r}
 food_feed_proj_diff %>% 
-  dplyr::filter(year == 2075 & source_group == "fish_seafood" & diet_plan == "USDA" & crop_class == "food")
+  dplyr::filter(scenario == "SSP3" & source_group == "plant_products" & diet_plan == "USDA" & crop_class == "feed")
 ```
 
 
