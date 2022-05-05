@@ -4218,6 +4218,13 @@ feed_pathways_clean <- feed_pathways %>%
 
 ```
 
+
+```{r}
+readr::write_csv(food_pathways_clean, file = paste0(data_path, "/food_pathways_clean.csv"))
+readr::write_csv(feed_pathways_clean, file = paste0(data_path, "/feed_pathways_clean.csv"))
+```
+
+
 ## Visualization
 
 Let's take a quick look at what cereals for food and feed will look like for all countries under SSP2.
